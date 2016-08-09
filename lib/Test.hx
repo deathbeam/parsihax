@@ -9,6 +9,6 @@ class Test {
             .map(function(x) { return Std.parseInt(x) * 2; });
 
         trace(fooParser.parse("foo"));
-        trace(numParser.parse("12"));
+        trace(P.formatError("12a", numParser.parse("12a")));
     }
 }
