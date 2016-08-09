@@ -1,31 +1,55 @@
+import Parsihax.*;
 import Parsihax.Util.*;
 
-// TODO: Follow this: https://github.com/jneen/parsimmon/blob/master/API.md
-class Parsihax {
-  public static var letter = regexp(~/[a-z]/i).desc('a letter');
-  public static var letters = regexp(~/[a-z]*/i);
-  public static var digit = regexp(~/[0-9]/).desc('a digit');
-  public static var digits = regexp(~/[0-9]*/);
-  public static var whitespace = regexp(~/\s+/).desc('whitespace');
-  public static var optWhitespace = regexp(~/\s*/);
+typedef Index = {
+  var offset: Int;
+  @:optional var line: Int;
+  @:optional var column: Int;
+}
 
-  public static var any = Parser(function(stream, i) {
+typedef Result = {
+  @:optional var status : Bool;
+  @:optional var index : Int;
+  @:optional var value: Dynamic;
+  @:optional var furthest: Int;
+  @:optional var expected : Array<String>;
+};
+
+abstract DynamicObject<T>(Dynamic<T>) from Dynamic<T> {
+  public inline function new() { this = {}; }
+  @:arrayAccess public inline function set(key:String, value:T):Void { Reflect.setField(this, key, value); }
+  @:arrayAccess public inline function get(key:String):Null<T> { #if js return untyped this[key]; #else return Reflect.field(this, key);#end }
+  public inline function exists(key:String):Bool { return Reflect.hasField(this, key); }
+  public inline function remove(key:String):Bool { return Reflect.deleteField(this, key); }
+  public inline function keys():Array<String> { return Reflect.fields(this); }
+}
+
+// From this: https://github.com/jneen/parsimmon/blob/master/API.md
+class Parsihax {
+  public static var letter = regexp('[a-z]/i').desc('a letter');
+  public static var letters = regexp('[a-z]*/i');
+  public static var digit = regexp('[0-9]').desc('a digit');
+  public static var digits = regexp('[0-9]*');
+  public static var whitespace = regexp('\\s+').desc('whitespace');
+  public static var optWhitespace = regexp('\\s*');
+
+  public static var any = new Parser(function(stream, i) {
     if (i >= stream.length) return makeFailure(i, 'any character');
 
     return makeSuccess(i+1, stream.charAt(i));
   });
 
-  public static var all = Parser(function(stream, i) {
-    return makeSuccess(stream.length, stream.slice(i));
+  public static var all = new Parser(function(stream, i) {
+    return makeSuccess(stream.length, stream.substr(i));
   });
 
-  public static var eof = Parser(function(stream, i) {
+  public static var eof = new Parser(function(stream, i) {
     if (i < stream.length) return makeFailure(i, 'EOF');
 
     return makeSuccess(i, null);
   });
 
-  public static var index = Parser(function(stream, i) {
+  public static var index = new Parser(function(stream, i) {
     return makeSuccess(i, makeLineColumnIndex(stream, i));
   });
 
@@ -33,10 +57,8 @@ class Parsihax {
     var len = str.length;
     var expected = "'"+str+"'";
 
-    assertString(str);
-
-    return Parser(function(stream, i) {
-      var head = stream.slice(i, i+len);
+    return new Parser(function(stream, i) {
+      var head = stream.substr(i, i+len);
 
       if (head == str) {
         return makeSuccess(i+len, head);
@@ -56,31 +78,35 @@ class Parsihax {
 
   public static function regexp(re, group = 0) {
     assertRegexp(re);
+    
+    var inner = re;
+    var ind =  re.lastIndexOf('/');
 
-    if (group != 0) {
-      assertNumber(group);
+    if (ind != -1) {
+      inner = re.substr(0, ind);
     }
+    
+    var anchored = new EReg('^(?:' + inner + ')', flags(re));
+    var expected = re;
 
-    var anchored = RegExp('^(?:' + re.source + ')', flags(re));
-    var expected = '' + re;
-
-    return Parser(function(stream, i) {
-      var match = anchored.exec(stream.slice(i));
+    return new Parser(function(stream, i) {
+      var match = anchored.matchSub(stream, i);
 
       if (match) {
-        var fullMatch = match[0];
-        var groupMatch = match[group];
+        var fullMatch = anchored.matched(0);
+        var groupMatch = anchored.matched(group);
         if (groupMatch != null) {
           return makeSuccess(i + fullMatch.length, groupMatch);
         }
       }
 
+      trace("Jello" + expected);
       return makeFailure(i, expected);
     });
   }
 
   public static function succeed(value) {
-    return Parser(function(stream, i) {
+    return new Parser(function(stream, i) {
       return makeSuccess(i, value);
     });
   }
@@ -89,21 +115,17 @@ class Parsihax {
     return succeed(value);
   }
 
-  public static function seq(parsers) {
+  public static function seq(parsers : Array<Parser>) {
     var numParsers = parsers.length;
 
-    for (parser in parsers) {
-      assertParser(parser);
-    }
-
-    return Parser(function(stream, i) {
-      var result;
-      var accum = new Array(numParsers);
+    return new Parser(function(stream, i) {
+      var result = null;
+      var accum : Array<Dynamic> = [];
 
       for (parser in parsers) {
-        result = mergeReplies(parser._(stream, i), result);
+        result = mergeReplies(parser.action(stream, i), result);
         if (!result.status) return result;
-        accum.add(result.value);
+        accum.push(result.value);
         i = result.index;
       }
 
@@ -112,25 +134,19 @@ class Parsihax {
   }
 
   public static function seqMap(parsers, mapper) {
-    assertFunction(mapper);
-
     return seq(parsers).map(function(results) {
       return mapper(results);
     });
   }
 
-  public static function alt(parsers) {
+  public static function alt(parsers : Array<Parser>) {
     var numParsers = parsers.length;
     if (numParsers == 0) return fail('zero alternates');
 
-    for (parser in parsers) {
-      assertParser(parser);
-    }
-
-    return Parser(function(stream, i) {
-      var result;
+    return new Parser(function(stream, i) {
+      var result = null;
       for (parser in parsers) {
-        result = mergeReplies(parser._(stream, i), result);
+        result = mergeReplies(parser.action(stream, i), result);
         if (result.status) return result;
       }
       return result;
@@ -138,12 +154,10 @@ class Parsihax {
   }
 
   public static function sepBy(parser, separator) {
-    return sepBy1(parser, separator).or(Parsimmon.of([]));
+    return sepBy1(parser, separator).or(of([]));
   }
 
   public static function sepBy1(parser, separator) {
-    assertParser(parser);
-    assertParser(separator);
 
     var pairs = separator.then(parser).many();
 
@@ -155,23 +169,23 @@ class Parsihax {
   }
 
   public static function lazy(f, ?desc) {
-    var parser = Parser(function(stream, i) {
-      parser._ = f()._;
-      return parser._(stream, i);
-    });
+    var parser = new Parser(null);
+
+    parser.action = function(stream, i) {
+      parser.action = f().action;
+      return parser.action(stream, i);
+    }
 
     if (desc != null) parser = parser.desc(desc);
     return parser;
   }
 
   public static function fail(expected) {
-    return Parser(function(stream, i) { return makeFailure(i, expected); });
+    return new Parser(function(stream, i) { return makeFailure(i, expected); });
   }
 
   public static function test(predicate) {
-    assertFunction(predicate);
-
-    return Parser(function(stream, i) {
+    return new Parser(function(stream, i) {
       var char = stream.charAt(i);
       if (i < stream.length && predicate(char)) {
         return makeSuccess(i+1, char);
@@ -183,17 +197,15 @@ class Parsihax {
   }
 
   public static function takeWhile(predicate) {
-    assertFunction(predicate);
-
-    return Parser(function(stream, i) {
+    return new Parser(function(stream, i) {
       var j = i;
       while (j < stream.length && predicate(stream.charAt(j))) j += 1;
-      return makeSuccess(j, stream.slice(i, j));
+      return makeSuccess(j, stream.substr(i, j));
     });
   }
 
   public static function custom(parsingFunction) {
-    return Parser(parsingFunction(makeSuccess, makeFailure));
+    return new Parser(parsingFunction(makeSuccess, makeFailure));
   }
 
   public static function formatError(stream, error) {
@@ -208,54 +220,51 @@ class Parsihax {
 // construct your Parser from the base parsers and the
 // parser combinator methods.
 class Parser {
-  public var _;
+  public var action : String -> Int -> Result;
 
-  public function new(action) {
-    this._ = action;
+  public function new(action : String -> Int -> Result) {
+    this.action = action;
   }
 
-  public function parse(stream) {
+  public function parse(stream) : Result {
     if (!Std.is(stream, String)) {
-      throw new Error('.parse must be called with a string as its argument');
+      throw '.parse must be called with a string as its argument';
     }
 
-    var result = this.skip(eof)._(stream, 0);
+    var result = this.skip(eof).action(stream, 0);
 
     return result.status ? {
       status: true,
       value: result.value
     } : {
       status: false,
-      index: makeLineColumnIndex(stream, result.furthest),
+      index: result.furthest,
       expected: result.expected
     };
   }
 
   public function or(alternative) {
-    return alt(this, alternative);
+    return alt([this, alternative]);
   }
 
   public function chain(f) {
     var self = this;
-    return Parser(function(stream, i) {
-      var result = self._(stream, i);
+    return new Parser(function(stream, i) {
+      var result = self.action(stream, i);
       if (!result.status) return result;
       var nextParser = f(result.value);
-      return mergeReplies(nextParser._(stream, result.index), result);
+      return mergeReplies(nextParser.action(stream, result.index), result);
     });
   }
 
   public function then(next) {
-    assertParser(next);
-    return seq(this, next).map(function(results) { return results[1]; });
+    return seq([this, next]).map(function(results) { return results[1]; });
   }
 
   public function map(fn) {
-    assertFunction(fn);
-
     var self = this;
-    return Parser(function(stream, i) {
-      var result = self._(stream, i);
+    return new Parser(function(stream, i) {
+      var result = self.action(stream, i);
       if (!result.status) return result;
       return mergeReplies(makeSuccess(result.index, fn(result.value)), result);
     });
@@ -266,7 +275,7 @@ class Parser {
   }
 
   public function skip(next) {
-    return seq(this, next).map(function(results) {
+    return seq([this, next]).map(function(results) {
       return results[0];
     });
   };
@@ -274,13 +283,13 @@ class Parser {
   public function many() {
     var self = this;
 
-    return Parser(function(stream, i) {
+    return new Parser(function(stream, i) {
       var accum = [];
-      var result;
-      var prevResult;
+      var result = null;
+      var prevResult = null;
 
       while (true) {
-        result = mergeReplies(self._(stream, i), result);
+        result = mergeReplies(self.action(stream, i), result);
 
         if (result.status) {
           i = result.index;
@@ -292,21 +301,18 @@ class Parser {
     });
   }
 
-  public function times(min, max) {
-    if (arguments.length < 2) max = min;
+  public function times(min, ?max) {
+    if (max == null) max = min;
     var self = this;
 
-    assertNumber(min);
-    assertNumber(max);
-
-    return Parser(function(stream, i) {
+    return new Parser(function(stream, i) {
       var accum = [];
       var start = i;
-      var result;
-      var prevResult;
+      var result = null;
+      var prevResult = null;
 
       for (times in 0...min) {
-        result = self._(stream, i);
+        result = self.action(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -315,7 +321,7 @@ class Parser {
       }
 
       for (times in 0...max) {
-        result = self._(stream, i);
+        result = self.action(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -334,29 +340,45 @@ class Parser {
 
   public function atLeast(n) {
     var self = this;
-    return seqMap(this.times(n), this.many(), function(init, rest) {
-      return init.concat(rest);
+    return seqMap([this.times(n), this.many()], function(results) {
+      return results[0].concat(results[1]);
     });
   }
 
   public function mark() {
-    return seqMap(index, this, index, function(start, value, end) {
-      return { start: start, value: value, end: end };
+    return seqMap([index, this, index], function(results) {
+      return { start: results[0], value: results[1], end: results[2] };
     });
   }
 
-  public function desc(expected) {
+  public function desc(expected : String) {
     var self = this;
-    return Parser(function(stream, i) {
-      var reply = self._(stream, i);
+    return new Parser(function(stream, i) {
+      var reply = self.action(stream, i);
       if (!reply.status) reply.expected = [expected];
       return reply;
     });
   }
+
+  public function concat(other) {
+    return or(other);
+  }
+
+  public function empty() {
+    return fail('empty');
+  }
+
+  public function ap(other) {
+    return seqMap([this, other], function(results) { return results[0](results[1]); });
+  }
+
+  public function of(value) {
+    return Parsihax.of(value);
+  }
 }
 
 class Util {
-  public static function makeSuccess(index, value) {
+  public static function makeSuccess(index : Int, value) : Result {
     return {
       status: true,
       index: index,
@@ -366,7 +388,7 @@ class Util {
     };
   }
 
-  public static function makeFailure(index, expected) {
+  public static function makeFailure(index : Int, expected : String) : Result {
     return {
       status: false,
       index: -1,
@@ -376,8 +398,8 @@ class Util {
     };
   }
 
-  public static function mergeReplies(result, last) {
-    if (!last) return result;
+  public static function mergeReplies(result : Result, ?last : Result) : Result {
+    if (last == null) return result;
     if (result.furthest > last.furthest) return result;
 
     var expected = (result.furthest == last.furthest)
@@ -398,7 +420,7 @@ class Util {
   // array is empty, it returns the other one unsorted. This is safe because
   // expectation arrays always start as [] or [x], so as long as we merge with
   // this function, we know they stay in sorted order.
-  public static function unsafeUnion(xs, ys) {
+  public static function unsafeUnion(xs : Array<String>, ys : Array<String>) : Array<String> {
     // Exit early if either array is empty (common case)
     var xn = xs.length;
     var yn = ys.length;
@@ -408,7 +430,8 @@ class Util {
       return xs;
     }
     // Two non-empty arrays: do the full algorithm
-    var obj = {};
+    var obj : DynamicObject<Bool> = {};
+
     var i = 0;
     while (i < xn) {
       obj[xs[i]] = true;
@@ -419,32 +442,27 @@ class Util {
       obj[ys[i]] = true;
       i++;
     }
+
     var keys = [];
-    for (k in obj) {
-      if (obj.hasOwnProperty(k)) {
-        keys.push(k);
-      }
+
+    for (k in obj.keys()) {
+      keys.push(k);
     }
-    keys.sort();
+
+    keys.sort(function(a, b):Int {
+        a = a.toLowerCase();
+        b = b.toLowerCase();
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+    });
+
     return keys;
   }
 
-  // For ensuring we have the right argument types
-  public static function assertParser(p) {
-    if (!Std.is(p, Parser)) {
-      throw new Error('not a parser: ' + p);
-    }
-  }
-
-  public static function assertNumber(x) {
-    if (!Std.is(x, Float) && !Std.is(x, Int)) {
-      throw new Error('not a number: ' + x);
-    }
-  }
-
   public static function assertRegexp(x) {
-    if (!Std.is(x, EReg)) {
-      throw new Error('not a regexp: '+x);
+    if (!Std.is(x, String)) {
+      throw 'not a regexp: '+x;
     }
 
     var f = flags(x);
@@ -455,51 +473,44 @@ class Util {
       // mess up Parsihax. If more non-stateful regexp flags are added in the
       // future, this will need to be revisited.
       if (c != 'i' && c != 'm' && c != 'u') {
-        throw new Error('unsupported regexp flag "' + c + '": ' + x);
+        throw 'unsupported regexp flag "' + c + '": ' + x;
       }
       i++;
     }
   }
 
-  public static function assertFunction(x) {
-    if (!Reflect.isFunction(x)) {
-      throw new Error('not a function: ' + x);
-    }
-  }
-
-  public static function assertString(x) {
-    if (!Std.is(x, String)) {
-      throw new Error('not a string: ' + x);
-    }
-  }
-
-  public static function formatExpected(expected) {
+  public static function formatExpected(expected : Array<String>) {
     if (expected.length == 1) return expected[0];
 
     return 'one of ' + expected.join(', ');
   }
 
-  public static function formatGot(stream, error) {
-    var index = error.index;
+  public static function formatGot(stream : String, error : Result) {
+    var index = makeLineColumnIndex(stream, error.index);
     var i = index.offset;
 
     if (i == stream.length) return ', got the end of the stream';
-
 
     var prefix = (i > 0 ? "'..." : "'");
     var suffix = (stream.length - i > 12 ? "...'" : "'");
 
     return ' at line ' + index.line + ' column ' + index.column
-      +  ', got ' + prefix + stream.slice(i, i+12) + suffix;
+      +  ', got ' + prefix + stream.substr(i, i+12) + suffix;
   }
 
-  public static function flags(re) {
-    var s = '' + re;
-    return s.slice(s.lastIndexOf('/') + 1);
+  public static function flags(re : String) {
+    var res = '';
+    var ind = re.lastIndexOf('/');
+
+    if (ind != -1) {
+      res = re.substr(ind + 1);
+    }
+
+    return res;
   };
 
-  public static function makeLineColumnIndex(stream, i) {
-    var lines = stream.slice(0, i).split("\n");
+  public static function makeLineColumnIndex(stream : String, i : Int) : Index {
+    var lines = stream.substr(0, i).split("\n");
     // Note that unlike the character offset, the line and column offsets are
     // 1-based.
     var lineWeAreUpTo = lines.length;
@@ -512,16 +523,3 @@ class Util {
     };
   };
 }
-
-//- fantasyland compat
-
-//- Monoid (Alternative, really)
-//_.concat = _.or;
-//_.empty = fail('empty')
-
-//- Applicative
-//_.of = Parser.of = Parsimmon.of = succeed
-
-//_.ap = function(other) {
-//  return seqMap(this, other, function(f, x) { return f(x); })
-//};
