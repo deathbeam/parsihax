@@ -535,6 +535,31 @@ class Parser {
   public function of(value) {
     return Parsihax.of(value);
   }
+
+  // Below do not follows original library API
+
+  /**
+  * Returns a new parser which tries parser, and if it fails returns null (like PEG optional case)
+  */
+  public function maybe() {
+    return or(of(null));
+  }
+
+  /**
+  * Returns a new parser that assigns value if result value is null (from maybe())
+  */
+  public function els(value) {
+    var self = this;
+    return new Parser(function(stream, i) {
+      var result = self.action(stream, i);
+
+      if (result.value == null) {
+        result.value = value;
+      }
+      
+      return result;
+    });
+  }
 }
 
 class Util {
