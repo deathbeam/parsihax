@@ -98,7 +98,7 @@ class Parser {
    */
   public static function all() : Parser {
     return new Parser(function(stream, i) {
-      return makeSuccess(stream.length, stream.substr(i));
+      return makeSuccess(stream.length, stream.substring(i));
     });
   }
 
@@ -139,7 +139,7 @@ class Parser {
     var expected = "'"+str+"'";
 
     return new Parser(function(stream, i) {
-      var head = stream.substr(i, len);
+      var head = stream.substring(i, i + len);
 
       if (head == str) {
         return makeSuccess(i+len, head);
@@ -169,16 +169,16 @@ class Parser {
    * Any other flag will result in an error being thrown.
    */
   public static function regexp(re : EReg, group : Int = 0) : Parser {
-    var expected = '' + re;
-
+    var expected = Std.string(re);
+    
     return new Parser(function(stream, i) {
-      var match = re.matchSub(stream, i);
+      var match = re.match(stream.substring(i));
 
       if (match) {
-        var fullMatch = re.matched(0);
         var groupMatch = re.matched(group);
-        if (groupMatch != null) {
-          return makeSuccess(i + fullMatch.length, groupMatch);
+        var pos = re.matchedPos();
+        if (groupMatch != null && pos.pos == 0) {
+          return makeSuccess(i + pos.len, groupMatch);
         }
       }
 
@@ -327,7 +327,7 @@ class Parser {
     return new Parser(function(stream, i) {
       var j = i;
       while (j < stream.length && predicate(stream.charAt(j))) j += 1;
-      return makeSuccess(j, stream.substr(i, j - i));
+      return makeSuccess(j, stream.substring(i, j));
     });
   }
 
@@ -356,7 +356,7 @@ class Parser {
       var suffix = (stream.length - i > 12 ? "...'" : "'");
 
       got = ' at line ' + index.line + ' column ' + index.column
-        +  ', got ' + prefix + stream.substr(i, 12) + suffix;
+        +  ', got ' + prefix + stream.substring(i, i + 12) + suffix;
     }
 
     return 'expected ' + sexpected + got;
@@ -615,7 +615,7 @@ class Parser {
   }
 
   private static function makeLineColumnIndex(stream : String, i : Int) : Index {
-    var lines = stream.substr(0, i).split("\n");
+    var lines = stream.substring(0, i).split("\n");
     var lineWeAreUpTo = lines.length;
     var columnWeAreUpTo = lines[lines.length - 1].length + 1;
 
