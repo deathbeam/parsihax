@@ -17,58 +17,58 @@ typedef Result = {
 
 // From this: https://github.com/jneen/parsimmon/blob/master/API.md
 class Parsihax {
-  // Equivalent to Parsihax.regexp('[a-z]/i').
-  public static var letter = regexp('[a-z]/i').desc('a letter');
+  // Equivalent to Parsihax.regexp(~/[a-z]/i).
+  public static var letter : Parser = regexp(~/[a-z]/i).desc('a letter');
 
-  // Equivalent to Parsihax.regexp('[a-z]*/i').
-  public static var letters = regexp('[a-z]*/i');
+  // Equivalent to Parsihax.regexp(~/[a-z]*/i).
+  public static var letters : Parser = regexp(~/[a-z]*/i);
 
-  // Equivalent to Parsihax.regexp('[0-9]').
-  public static var digit = regexp('[0-9]').desc('a digit');
+  // Equivalent to Parsihax.regexp(~/[0-9]/).
+  public static var digit : Parser = regexp(~/[0-9]/).desc('a digit');
 
-  // Equivalent to Parsihax.regexp('[0-9]*').
-  public static var digits = regexp('[0-9]*');
+  // Equivalent to Parsihax.regexp(~/[0-9]*/).
+  public static var digits : Parser = regexp(~/[0-9]*/);
 
-  // Equivalent to Parsihax.regexp('\s+').
-  public static var whitespace = regexp('\\s+').desc('whitespace');
+  // Equivalent to Parsihax.regexp(~/\s+/).
+  public static var whitespace : Parser = regexp(~/\\s+/).desc('whitespace');
 
-  // Equivalent to Parsihax.regexp('\s*').
-  public static var optWhitespace = regexp('\\s*');
+  // Equivalent to Parsihax.regexp(~/\s*/).
+  public static var optWhitespace : Parser = regexp(~/\\s*/);
 
   // A parser that consumes and yields the next character of the stream.
-  public static var any = new Parser(function(stream, i) {
-    if (i >= stream.length) return makeFailure(i, 'any character');
-
-    return makeSuccess(i+1, stream.charAt(i));
+  public static var any : Parser = new Parser(function(stream, i) {
+    return i >= stream.length
+      ? makeFailure(i, 'any character')
+      : makeSuccess(i+1, stream.charAt(i));
   });
 
   // A parser that consumes and yields the entire remainder of the stream.
-  public static var all = new Parser(function(stream, i) {
+  public static var all : Parser = new Parser(function(stream, i) {
     return makeSuccess(stream.length, stream.substr(i));
   });
 
   // A parser that expects to be at the end of the stream (zero characters left).
-  public static var eof = new Parser(function(stream, i) {
-    if (i < stream.length) return makeFailure(i, 'EOF');
-
-    return makeSuccess(i, null);
+  public static var eof : Parser = new Parser(function(stream, i) {
+    return i < stream.length
+      ? makeFailure(i, 'EOF')
+      : makeSuccess(i, null);
   });
 
   // A parser that consumes no text and yields an object an object representing the current offset into the parse:
   // it has a 0-based character offset property and 1-based line and column properties.
-  public static var index = new Parser(function(stream, i) {
+  public static var index : Parser = new Parser(function(stream, i) {
     return makeSuccess(i, makeLineColumnIndex(stream, i));
   });
 
   /**
   * Returns a parser that looks for string and yields that exact value.
   */
-  public static function string(str) {
+  public static function string(str) : Parser {
     var len = str.length;
     var expected = "'"+str+"'";
 
     return new Parser(function(stream, i) {
-      var head = stream.substr(i, i+len);
+      var head = stream.substr(i, len);
 
       if (head == str) {
         return makeSuccess(i+len, head);
@@ -81,14 +81,14 @@ class Parsihax {
   /**
   * Returns a parser that looks for exactly one character from string, and yields that character.
   */
-  public static function oneOf(str) {
+  public static function oneOf(str) : Parser {
     return test(function(ch) { return str.indexOf(ch) >= 0; });
   }
 
   /**
   * Returns a parser that looks for exactly one character NOT from string, and yields that character.
   */
-  public static function noneOf(str) {
+  public static function noneOf(str) : Parser {
     return test(function(ch) { return str.indexOf(ch) < 0; });
   }
 
@@ -97,37 +97,15 @@ class Parsihax {
   * The regexp will always match starting at the current parse location. The regexp may only use the following flags: imu.
   * Any other flag will result in an error being thrown.
   */
-  public static function regexp(re : String, group : Int = 0) {
-    var f = '';
-    var inner = re;
-    var ind = re.lastIndexOf('/');
-
-    if (ind != -1) {
-      inner = re.substr(0, ind);
-      f = re.substr(ind + 1);
-    }
-
-    var i = 0;
-    while (i < f.length) {
-      var c = f.charAt(i);
-      // Only allow regexp flags [imu] for now, since [g] and [y] specifically
-      // mess up Parsihax. If more non-stateful regexp flags are added in the
-      // future, this will need to be revisited.
-      if (c != 'i' && c != 'm' && c != 'u') {
-        throw 'unsupported regexp flag "' + c + '": ' + re;
-      }
-      i++;
-    }
-    
-    var anchored = new EReg('^(?:' + inner + ')', f);
-    var expected = re;
+  public static function regexp(re : EReg, group : Int = 0) : Parser {
+    var expected = '' + re;
 
     return new Parser(function(stream, i) {
-      var match = anchored.matchSub(stream, i);
+      var match = re.matchSub(stream, i);
 
       if (match) {
-        var fullMatch = anchored.matched(0);
-        var groupMatch = anchored.matched(group);
+        var fullMatch = re.matched(0);
+        var groupMatch = re.matched(group);
         if (groupMatch != null) {
           return makeSuccess(i + fullMatch.length, groupMatch);
         }
@@ -140,14 +118,14 @@ class Parsihax {
   /**
   * This is an alias for Parsihax.regexp
   */
-  public static function regex(re : String, group : Int = 0) {
+  public static function regex(re : EReg, group : Int = 0) : Parser {
     return regexp(re, group);
   }
 
   /**
   * Returns a parser that doesn't consume any of the string, and yields result. 
   */
-  public static function succeed(value) {
+  public static function succeed(value : Dynamic) : Parser {
     return new Parser(function(stream, i) {
       return makeSuccess(i, value);
     });
@@ -156,14 +134,14 @@ class Parsihax {
   /**
   * This is an alias for Parsihax.succeed(result). 
   */
-  public static function of(value) {
+  public static function of(value : Dynamic) : Parser {
     return succeed(value);
   }
 
   /**
   * Accepts any number of parsers and returns a new parser that expects them to match in order, yielding an array of all their results.
   */
-  public static function seq(parsers : Array<Parser>) {
+  public static function seq(parsers : Array<Parser>) : Parser {
     var numParsers = parsers.length;
 
     return new Parser(function(stream, i) {
@@ -185,7 +163,7 @@ class Parsihax {
   * Matches all parsers sequentially, and passes their results as the arguments to a function. Similar as calling Parsihax.seq
   * and then .map.
   */
-  public static function seqMap(parsers, mapper) {
+  public static function seqMap(parsers : Array<Parser>, mapper : Array<Dynamic> -> Dynamic) : Parser {
     return seq(parsers).map(function(results) {
       return mapper(results);
     });
@@ -195,16 +173,18 @@ class Parsihax {
   * Accepts any number of parsers, yielding the value of the first one that succeeds, backtracking in between.
   * This means that the order of parsers matters. If two parsers match the same prefix, the longer of the two must come first. 
   */
-  public static function alt(parsers : Array<Parser>) {
+  public static function alt(parsers : Array<Parser>) : Parser {
     var numParsers = parsers.length;
     if (numParsers == 0) return fail('zero alternates');
 
     return new Parser(function(stream, i) {
       var result = null;
+
       for (parser in parsers) {
         result = mergeReplies(parser.action(stream, i), result);
         if (result.status) return result;
       }
+
       return result;
     });
   }
@@ -212,14 +192,14 @@ class Parsihax {
   /**
   * Accepts two parsers, and expects zero or more matches for content, separated by separator, yielding an array.
   */
-  public static function sepBy(parser, separator) {
+  public static function sepBy(parser : Parser, separator : Parser) : Parser {
     return sepBy1(parser, separator).or(of([]));
   }
 
   /**
   * This is the same as Parsihax.sepBy, but matches the content parser at least once.
   */
-  public static function sepBy1(parser, separator) {
+  public static function sepBy1(parser : Parser, separator : Parser) : Parser {
     var pairs = separator.then(parser).many();
 
     return parser.chain(function(r) {
@@ -233,7 +213,7 @@ class Parsihax {
   * Accepts a function that returns a parser, which is evaluated the first time the parser is used.
   * This is useful for referencing parsers that haven't yet been defined, and for implementing recursive parsers.
   */
-  public static function lazy(f, ?desc) {
+  public static function lazy(f : Void -> Parser, ?desc : String) : Parser {
     var parser = new Parser(null);
 
     parser.action = function(stream, i) {
@@ -248,14 +228,14 @@ class Parsihax {
   /**
   * Returns a failing parser with the given message.
   */
-  public static function fail(expected) {
+  public static function fail(expected : String) : Parser {
     return new Parser(function(stream, i) { return makeFailure(i, expected); });
   }
 
   /**
   * Returns a parser that yield a single character if it passes the predicate function.
   */
-  public static function test(predicate) {
+  public static function test(predicate : String -> Bool) : Parser {
     return new Parser(function(stream, i) {
       var char = stream.charAt(i);
       if (i < stream.length && predicate(char)) {
@@ -270,18 +250,18 @@ class Parsihax {
   /**
   * Returns a parser yield a string containing all the next characters that pass the predicate.
   */
-  public static function takeWhile(predicate) {
+  public static function takeWhile(predicate : String -> Bool) : Parser {
     return new Parser(function(stream, i) {
       var j = i;
       while (j < stream.length && predicate(stream.charAt(j))) j += 1;
-      return makeSuccess(j, stream.substr(i, j));
+      return makeSuccess(j, stream.substr(i, j - i));
     });
   }
 
   /**
   * You can add a primitive parser (similar to the included ones) by using Parsihax.custom.
   */
-  public static function custom(parsingFunction) {
+  public static function custom(parsingFunction) : Parser {
     return new Parser(parsingFunction(makeSuccess, makeFailure));
   }
 
@@ -304,7 +284,7 @@ class Parsihax {
       var suffix = (stream.length - i > 12 ? "...'" : "'");
 
       got = ' at line ' + index.line + ' column ' + index.column
-        +  ', got ' + prefix + stream.substr(i, i+12) + suffix;
+        +  ', got ' + prefix + stream.substr(i, 12) + suffix;
     }
 
     return 'expected ' + expected + got;
@@ -332,11 +312,7 @@ class Parser {
   * Otherwise, the index and expected attributes will contain the index of the parse error
   * (with offset, line and column properties), and a sorted, unique array of messages indicating what was expected.
   */
-  public function parse(stream) : Result {
-    if (!Std.is(stream, String)) {
-      throw '.parse must be called with a string as its argument';
-    }
-
+  public function parse(stream : String) : Result {
     var result = this.skip(eof).action(stream, 0);
 
     return result.status ? {
@@ -352,7 +328,7 @@ class Parser {
   /**
   * Returns a new parser which tries parser, and if it fails uses otherParser.
   */
-  public function or(alternative) {
+  public function or(alternative : Parser) : Parser {
     return alt([this, alternative]);
   }
 
@@ -361,7 +337,7 @@ class Parser {
   * of the parse, which is expected to return another parser, which will be tried next. This allows you to
   * dynamically decide how to continue the parse, which is impossible with the other combinators.
   */
-  public function chain(f) {
+  public function chain(f : Dynamic -> Parser) : Parser {
     var self = this;
     return new Parser(function(stream, i) {
       var result = self.action(stream, i);
@@ -374,14 +350,15 @@ class Parser {
   /**
   * Expects anotherParser to follow parser, and yields the result of anotherParser.
   */
-  public function then(next) {
+  public function then(next : Parser) : Parser {
     return seq([this, next]).map(function(results) { return results[1]; });
   }
 
   /**
   * Transforms the output of parser with the given function.
+  * TODO: Set type for fn (requires value type for makeSuccess)
   */
-  public function map(fn) {
+  public function map(fn) : Parser {
     var self = this;
     return new Parser(function(stream, i) {
       var result = self.action(stream, i);
@@ -393,14 +370,14 @@ class Parser {
   /**
   * Returns a new parser with the same behavior, but which yields value. Equivalent to parser.map(function(x) { return x; }.bind(value)).
   */
-  public function result(res) {
+  public function result(res : Dynamic) : Parser {
     return this.map(function(_) { return res; });
   }
 
   /**
   * Expects otherParser after parser, but yields the value of parser.
   */
-  public function skip(next) {
+  public function skip(next : Parser) : Parser {
     return seq([this, next]).map(function(results) {
       return results[0];
     });
@@ -409,7 +386,7 @@ class Parser {
   /**
   * Expects parser zero or more times, and yields an array of the results.
   */
-  public function many() {
+  public function many() : Parser {
     var self = this;
 
     return new Parser(function(stream, i) {
@@ -434,7 +411,7 @@ class Parser {
   * Expects parser between min and max times (or exactly x times, when second argument is omitted),
   * and yields an array of the results.
   */
-  public function times(min, ?max) {
+  public function times(min : Int, ?max : Int) : Parser {
     if (max == null) max = min;
     var self = this;
 
@@ -470,14 +447,14 @@ class Parser {
   /**
   * Expects parser at most n times. Yields an array of the results.
   */
-  public function atMost(n) {
+  public function atMost(n : Int) : Parser {
     return this.times(0, n);
   }
 
   /**
   * Expects parser at least n times. Yields an array of the results.
   */
-  public function atLeast(n) {
+  public function atLeast(n : Int) : Parser {
     var self = this;
     return seqMap([this.times(n), this.many()], function(results) {
       return results[0].concat(results[1]);
@@ -489,7 +466,7 @@ class Parser {
   * and start and end are are objects with a 0-based offset and 1-based line and column properties that represent
   * the position in the stream that contained the parsed text.
   */
-  public function mark() {
+  public function mark() : Parser {
     return seqMap([index, this, index], function(results) {
       return { start: results[0], value: results[1], end: results[2] };
     });
@@ -499,7 +476,7 @@ class Parser {
   * Returns a new parser whose failure message is description. For example, string('x').desc('the letter x')
   * will indicate that 'the letter x' was expected.
   */
-  public function desc(expected : String) {
+  public function desc(expected : String) : Parser {
     var self = this;
     return new Parser(function(stream, i) {
       var reply = self.action(stream, i);
@@ -511,28 +488,28 @@ class Parser {
   /**
   * This is an alias for parser.or(other)
   */
-  public function concat(other) {
+  public function concat(other : Parser) : Parser {
     return or(other);
   }
 
   /**
   * Returns a new failed parser with 'empty' message
   */
-  public function empty() {
+  public function empty() : Parser {
     return fail('empty');
   }
 
   /**
   * Applies other parser to new parser
   */
-  public function ap(other) {
+  public function ap(other : Parser) : Parser {
     return seqMap([this, other], function(results) { return results[0](results[1]); });
   }
 
   /**
   * This is an alias for Parsihax.succeed(result). 
   */
-  public function of(value) {
+  public function of(value : Dynamic) : Parser {
     return Parsihax.of(value);
   }
 
@@ -541,19 +518,19 @@ class Parser {
   /**
   * Returns a new parser which tries parser, and if it fails returns null (like PEG optional case)
   */
-  public function maybe() {
+  public function maybe() : Parser {
     return or(of(null));
   }
 
   /**
   * Returns a new parser that assigns value if result value is null (from maybe())
   */
-  public function els(value) {
+  public function els(value : Parser) : Parser {
     var self = this;
     return new Parser(function(stream, i) {
       var result = self.action(stream, i);
 
-      if (result.value == null) {
+      if (result.status && result.value == null) {
         result.value = value;
       }
       
