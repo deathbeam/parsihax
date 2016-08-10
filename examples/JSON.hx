@@ -104,11 +104,11 @@ class JSON {
             });
 
         ///////////////////////////////////////////////////////////////////////
-
+        // TODO: Mixing numberLiteral and stringLiteral is for some reason not working
         var text = '{
     "firstName": "John",
     "lastName": "Smith",
-    "age": 25,
+    "age": "25",
     "address":
     {
         "streetAddress": "21 2nd Street",
@@ -130,6 +130,12 @@ class JSON {
 }';
 
         var result = json.parse(text);
-        trace(P.formatError(text, result));
+
+        if (result.status) {
+            var val : Map<String, Dynamic> = result.value;
+            trace(val);
+        } else {
+            trace(P.formatError(text, result));
+        }
     }
 }

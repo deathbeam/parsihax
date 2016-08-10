@@ -63,7 +63,7 @@ class Parsihax {
   /**
   * Returns a parser that looks for string and yields that exact value.
   */
-  public static function string(str) : Parser {
+  public static function string(str : String) : Parser {
     var len = str.length;
     var expected = "'"+str+"'";
 
@@ -81,14 +81,14 @@ class Parsihax {
   /**
   * Returns a parser that looks for exactly one character from string, and yields that character.
   */
-  public static function oneOf(str) : Parser {
+  public static function oneOf(str : String) : Parser {
     return test(function(ch) { return str.indexOf(ch) >= 0; });
   }
 
   /**
   * Returns a parser that looks for exactly one character NOT from string, and yields that character.
   */
-  public static function noneOf(str) : Parser {
+  public static function noneOf(str : String) : Parser {
     return test(function(ch) { return str.indexOf(ch) < 0; });
   }
 
@@ -229,7 +229,9 @@ class Parsihax {
   * Returns a failing parser with the given message.
   */
   public static function fail(expected : String) : Parser {
-    return new Parser(function(stream, i) { return makeFailure(i, expected); });
+    return new Parser(function(stream, i) {
+      return makeFailure(i, expected);
+    });
   }
 
   /**
@@ -356,9 +358,8 @@ class Parser {
 
   /**
   * Transforms the output of parser with the given function.
-  * TODO: Set type for fn (requires value type for makeSuccess)
   */
-  public function map(fn) : Parser {
+  public function map(fn : Dynamic -> Dynamic) : Parser {
     var self = this;
     return new Parser(function(stream, i) {
       var result = self.action(stream, i);
@@ -540,7 +541,7 @@ class Parser {
 }
 
 class Util {
-  public static function makeSuccess(index : Int, value) : Result {
+  public static function makeSuccess(index : Int, value : Dynamic) : Result {
     return {
       status: true,
       index: index,
