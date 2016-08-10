@@ -72,14 +72,14 @@ class Parser {
    * Equivalent to regexp \s+
    */
   public static function whitespace() : Parser {
-    return regexp(~/\\s+/).desc('whitespace');
+    return regexp(~/\s+/).desc('whitespace');
   }
 
   /**
    * Equivalent to regexp \s*
    */
   public static function optWhitespace() : Parser {
-    return regexp(~/\\s*/);
+    return regexp(~/\s*/);
   }
 
   /**
@@ -285,12 +285,12 @@ class Parser {
    * This is useful for referencing parsers that haven't yet been defined, and for implementing recursive parsers.
    */
   public static function lazy(f : Void -> Parser, ?desc : String) : Parser {
-    var parser = new Parser(null);
-
-    parser.action = function(stream, i) {
+    var parser : Parser = null;
+    
+    parser = new Parser(function(stream, i) {
       parser.action = f().action;
       return parser.action(stream, i);
-    }
+    });
 
     if (desc != null) parser = parser.desc(desc);
     return parser;
