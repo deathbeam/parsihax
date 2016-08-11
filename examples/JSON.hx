@@ -1,11 +1,13 @@
 package examples;
 
+import parsihax.Parser;
+import parsihax.Parser.Ref;
 import parsihax.Parser as P;
 
 class JSON {
   public static function main() {
     // Create reference to JSON first so we will be able to recurse
-    var json = P.ref();
+    var json : Ref<Dynamic> = P.ref();
 
     // Turn escaped characters into real ones (e.g. "\\n" becoems "\n").
     function interpretEscapes(str) {
@@ -51,17 +53,17 @@ class JSON {
 
     // `.result` is like `.map` but it takes a value instead of a function, and
     // `.always returns the same value.
-    var nullLiteral = token(P.string('null')).result(null);
-    var trueLiteral = token(P.string('true')).result(true);
-    var falseLiteral = token(P.string('false')).result(false);
+    var nullLiteral : Parser<Dynamic> = token(P.string('null')).result(null);
+    var trueLiteral : Parser<Dynamic> = token(P.string('true')).result(true);
+    var falseLiteral : Parser<Dynamic> = token(P.string('false')).result(false);
 
     // Regexp based parsers should generally be named for better error reporting.
-    var stringLiteral =
+    var stringLiteral : Parser<Dynamic> =
       token(P.regexp(~/"((?:\\.|.)*?)"/, 1))
         .map(interpretEscapes)
         .desc('string');
 
-    var numberLiteral =
+    var numberLiteral : Parser<Dynamic> =
       token(P.regexp(~/-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/))
         .map(function (result) { return Std.parseInt(result); })
         .desc('number');
@@ -70,14 +72,14 @@ class JSON {
     // JSON documents as possible. Notice that we're using the parser `json` we just
     // defined above. Arrays and objects in the JSON grammar are recursive because
     // they can contain any other JSON document within them.
-    var array = lbracket.then(commaSep(json)).skip(rbracket);
+    var array : Parser<Dynamic> = lbracket.then(commaSep(json)).skip(rbracket);
 
     // Object parsing is a little trickier because we have to collect all the key-
     // value pairs in order as length-2 arrays, then manually copy them into an
     // object.
-    var pair = P.seq([stringLiteral.skip(colon), json]);
+    var pair : Parser<Dynamic> = P.seq([stringLiteral.skip(colon), json]);
 
-    var object =
+    var object : Parser<Dynamic> =
       lbrace.then(commaSep(pair)).skip(rbrace).map(function(pairs) {
         var out = new Map<String, Dynamic>();
         var rPairs : Array<Dynamic> = pairs;

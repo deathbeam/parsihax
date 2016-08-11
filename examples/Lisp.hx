@@ -1,5 +1,7 @@
 package examples;
 
+import parsihax.Parser;
+import parsihax.Parser.Ref;
 import parsihax.Parser as P;
 
 class Lisp {
@@ -11,17 +13,17 @@ class Lisp {
 
     // We need to use `P.ref` here because the other parsers don't exist yet. We
     // can't just declare this later though, because `LList` references this parser!
-    var LExpression = P.ref();
+    var LExpression : Ref<Dynamic> = P.ref();
 
     // The basic parsers (usually the ones described via regexp) should have a
     // description for error message purposes.
-    var LSymbol = P.regexp(~/[a-zA-Z_-][a-zA-Z0-9_-]*/).desc('symbol');
-    var LNumber = P.regexp(~/[0-9]+/).map(function (result) { return Std.parseInt(result); }).desc('number');
+    var LSymbol : Parser<Dynamic> = P.regexp(~/[a-zA-Z_-][a-zA-Z0-9_-]*/).desc('symbol');
+    var LNumber : Parser<Dynamic> = P.regexp(~/[0-9]+/).map(function (result) { return Std.parseInt(result); }).desc('number');
 
     // `.then` throws away the first value, and `.skip` throws away the second
     // `.value, so we're left with just the `spaced(LExpression).many()` part as the
     // `.yielded value from this parser.
-    var LList =
+    var LList : Parser<Array<Dynamic>> =
       P.string('(')
         .then(spaced(LExpression).many())
         .skip(P.string(')'));

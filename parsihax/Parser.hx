@@ -1,33 +1,45 @@
 package parsihax;
 
-typedef Index = {
-  var offset: Int;
-  @:optional var line: Int;
-  @:optional var column: Int;
+import haxe.ds.Option;
+
+private abstract Any(Dynamic) from Dynamic {
+  @:noCompletion @:to inline function __promote<A>():A return this;
 }
 
-typedef Data = {
+typedef Index = {
+  var offset: Int;
+  var line: Int;
+  var column: Int;
+}
+
+typedef Mark<T> = {
+  var start: Index;
+  var end: Index;
+  var value: T;
+}
+
+typedef Data<T> = {
   @:optional var status : Bool;
   @:optional var index : Int;
-  @:optional var value: Dynamic;
+  @:optional var value: T;
   @:optional var furthest: Int;
   @:optional var expected : Array<String>;
 };
 
-enum Result {
-  Success(value : Dynamic);
+enum Result<T> {
+  Success(value : T);
   Failure(index : Index, expected : Array<String>);
 }
 
 /**
  * An atomic mutable reference to {@link Parser} used in recursive grammars.
  */
-class Ref extends Parser {
-  private function new(action : String -> Int -> Data) {
+class Ref<A> extends Parser<A> {
+  private function new(action : String -> Int -> Data<A>) {
     super(action);
   }
 
-  public function set(parser : Parser) : Ref {
+  public function set(parser : Parser<A>) : Ref<A> {
     this.action = parser.action;
     return this;
   }
@@ -39,53 +51,53 @@ class Ref extends Parser {
  * An enum {@link Result} is return, which can be Success(value : Dynamic) or
  * Failure(index : Index, expected : Array<String>)
  */
-class Parser {
+class Parser<A> {
   /**
    * Equivalent to regexp [a-z] /i
    */
-  public static function letter() : Parser {
+  public static function letter() : Parser<String> {
     return regexp(~/[a-z]/i).desc('a letter');
   }
 
   /**
    * Equivalent to regexp [a-z]* /i
    */
-  public static function letters() : Parser {
+  public static function letters() : Parser<String> {
     return regexp(~/[a-z]*/i);
   }
 
   /**
    * Equivalent to regex [0-9]
    */
-  public static function digit() : Parser {
+  public static function digit() : Parser<String> {
     return regexp(~/[0-9]/).desc('a digit');
   }
 
   /**
    * Equivalent to regexp [0-9]*
    */
-  public static function digits() : Parser {
+  public static function digits() : Parser<String> {
     return regexp(~/[0-9]*/);
   }
 
   /**
    * Equivalent to regexp \s+
    */
-  public static function whitespace() : Parser {
+  public static function whitespace() : Parser<String> {
     return regexp(~/\s+/).desc('whitespace');
   }
 
   /**
    * Equivalent to regexp \s*
    */
-  public static function optWhitespace() : Parser {
+  public static function optWhitespace() : Parser<String> {
     return regexp(~/\s*/);
   }
 
   /**
    * A parser that consumes and yields the next character of the stream.
    */
-  public static function any() : Parser {
+  public static function any() : Parser<String> {
     return new Parser(function(stream, i) {
       return i >= stream.length
         ? makeFailure(i, 'any character')
@@ -96,7 +108,7 @@ class Parser {
   /**
    * A parser that consumes and yields the entire remainder of the stream.
    */
-  public static function all() : Parser {
+  public static function all() : Parser<String> {
     return new Parser(function(stream, i) {
       return makeSuccess(stream.length, stream.substring(i));
     });
@@ -105,7 +117,7 @@ class Parser {
   /**
    * A parser that expects to be at the end of the stream (zero characters left).
    */
-  public static function eof() : Parser {
+  public static function eof<A>() : Parser<A> {
     return new Parser(function(stream, i) {
       return i < stream.length
         ? makeFailure(i, 'EOF')
@@ -117,7 +129,7 @@ class Parser {
    * A parser that consumes no text and yields an object an object representing the current offset into the parse:
    * it has a 0-based character offset property and 1-based line and column properties.
    */
-  public static function index() : Parser {
+  public static function index() : Parser<Index> {
     return new Parser(function(stream, i) {
       return makeSuccess(i, makeLineColumnIndex(stream, i));
     });
@@ -127,14 +139,14 @@ class Parser {
    * Create parser reference, usefull for recursive parsers. If parsing is tried on this reference
    * directly, without concating it, it returns failed parser.
    */
-  public static function ref() : Ref {
+  public static function ref<A>() : Ref<A> {
     return new Ref(fail('actual parser, and not reference').action);
   }
 
   /**
    * Returns a parser that looks for string and yields that exact value.
    */
-  public static function string(str : String) : Parser {
+  public static function string(str : String) : Parser<String> {
     var len = str.length;
     var expected = "'"+str+"'";
 
@@ -152,7 +164,7 @@ class Parser {
   /**
    * Returns a parser that looks for exactly one character from string, and yields that character.
    */
-  public static function oneOf(str : String) : Parser {
+  public static function oneOf(str : String) : Parser<String> {
     return test(function(ch) {
       return str.indexOf(ch) >= 0;
     });
@@ -161,7 +173,7 @@ class Parser {
   /**
    * Returns a parser that looks for exactly one character NOT from string, and yields that character.
    */
-  public static function noneOf(str : String) : Parser {
+  public static function noneOf(str : String) : Parser<String> {
     return test(function(ch) {
       return str.indexOf(ch) < 0;
     });
@@ -172,7 +184,7 @@ class Parser {
    * The regexp will always match starting at the current parse location. The regexp may only use the following flags: imu.
    * Any other flag will result in an error being thrown.
    */
-  public static function regexp(re : EReg, group : Int = 0) : Parser {
+  public static function regexp(re : EReg, group : Int = 0) : Parser<String> {
     var expected = Std.string(re);
     
     return new Parser(function(stream, i) {
@@ -193,14 +205,14 @@ class Parser {
   /**
    * This is an alias for Parser.regexp
    */
-  public static function regex(re : EReg, group : Int = 0) : Parser {
+  public static function regex(re : EReg, group : Int = 0) : Parser<String> {
     return regexp(re, group);
   }
 
   /**
    * Returns a parser that doesn't consume any of the string, and yields result. 
    */
-  public static function succeed(value : Dynamic) : Parser {
+  public static function succeed<A>(value : A) : Parser<A> {
     return new Parser(function(stream, i) {
       return makeSuccess(i, value);
     });
@@ -209,23 +221,23 @@ class Parser {
   /**
    * This is an alias for Parser.succeed(result). 
    */
-  public static function of(value : Dynamic) : Parser {
+  public static function of<A>(value : A) : Parser<A> {
     return succeed(value);
   }
 
   /**
    * Accepts any number of parsers and returns a new parser that expects them to match in order, yielding an array of all their results.
    */
-  public static function seq(parsers : Array<Parser>) : Parser {
+  public static function seq<A>(parsers : Array<Parser<A>>) : Parser<Array<A>> {
     var numParsers = parsers.length;
 
     return new Parser(function(stream, i) {
-      var result = null;
-      var accum : Array<Dynamic> = [];
+      var result : Data<A> = null;
+      var accum : Array<A> = [];
 
       for (parser in parsers) {
         result = mergeReplies(parser.action(stream, i), result);
-        if (!result.status) return result;
+        if (!result.status) return makeCopy(result);
         accum.push(result.value);
         i = result.index;
       }
@@ -238,7 +250,7 @@ class Parser {
    * Matches all parsers sequentially, and passes their results as the arguments to a function. Similar as calling Parser.seq
    * and then .map.
    */
-  public static function seqMap(parsers : Array<Parser>, mapper : Array<Dynamic> -> Dynamic) : Parser {
+  public static function seqMap<A, B>(parsers : Array<Parser<A>>, mapper : Array<A> -> B) : Parser<B> {
     return seq(parsers).map(function(results) {
       return mapper(results);
     });
@@ -248,7 +260,7 @@ class Parser {
    * Accepts any number of parsers, yielding the value of the first one that succeeds, backtracking in between.
    * This means that the order of parsers matters. If two parsers match the same prefix, the longer of the two must come first. 
    */
-  public static function alt(parsers : Array<Parser>) : Parser {
+  public static function alt<A>(parsers : Array<Parser<A>>) : Parser<A> {
     var numParsers = parsers.length;
     if (numParsers == 0) return fail('zero alternates');
 
@@ -267,14 +279,14 @@ class Parser {
   /**
    * Accepts two parsers, and expects zero or more matches for content, separated by separator, yielding an array.
    */
-  public static function sepBy(parser : Parser, separator : Parser) : Parser {
+  public static function sepBy<A, B>(parser : Parser<A>, separator : Parser<B>) : Parser<Array<A>> {
     return sepBy1(parser, separator).or(of([]));
   }
 
   /**
    * This is the same as Parser.sepBy, but matches the content parser at least once.
    */
-  public static function sepBy1(parser : Parser, separator : Parser) : Parser {
+  public static function sepBy1<A, B>(parser : Parser<A>, separator : Parser<B>) : Parser<Array<A>> {
     var pairs = separator.then(parser).many();
 
     return parser.chain(function(r) {
@@ -288,8 +300,8 @@ class Parser {
    * Accepts a function that returns a parser, which is evaluated the first time the parser is used.
    * This is useful for referencing parsers that haven't yet been defined, and for implementing recursive parsers.
    */
-  public static function lazy(f : Void -> Parser, ?desc : String) : Parser {
-    var parser : Parser = null;
+  public static function lazy<A>(f : Void -> Parser<A>, ?desc : String) : Parser<A> {
+    var parser : Parser<A> = null;
     
     parser = new Parser(function(stream, i) {
       parser.action = f().action;
@@ -303,7 +315,7 @@ class Parser {
   /**
    * Returns a failing parser with the given message.
    */
-  public static function fail(expected : String) : Parser {
+  public static function fail<A>(expected : String) : Parser<A> {
     return new Parser(function(stream, i) {
       return makeFailure(i, expected);
     });
@@ -312,7 +324,7 @@ class Parser {
   /**
    * Returns a parser that yield a single character if it passes the predicate function.
    */
-  public static function test(predicate : String -> Bool) : Parser {
+  public static function test(predicate : String -> Bool) : Parser<String> {
     return new Parser(function(stream, i) {
       var char = stream.charAt(i);
 
@@ -325,7 +337,7 @@ class Parser {
   /**
    * Returns a parser yield a string containing all the next characters that pass the predicate.
    */
-  public static function takeWhile(predicate : String -> Bool) : Parser {
+  public static function takeWhile(predicate : String -> Bool) : Parser<String> {
     return new Parser(function(stream, i) {
       var j = i;
       while (j < stream.length && predicate(stream.charAt(j))) j += 1;
@@ -336,7 +348,10 @@ class Parser {
   /**
    * You can add a primitive parser (similar to the included ones) by using Parser.custom.
    */
-  public static function custom(parsingFunction) : Parser {
+  public static function custom<A>(parsingFunction
+      : (Int -> A -> Data<A>)
+      -> (Int -> String -> Data<A>)
+      -> (String -> Int -> Data<A>)) : Parser<A> {
     return new Parser(parsingFunction(makeSuccess, makeFailure));
   }
 
@@ -370,7 +385,7 @@ class Parser {
    * Otherwise, the index and expected attributes will contain the index of the parse error
    * (with offset, line and column properties), and a sorted, unique array of messages indicating what was expected.
    */
-  public function parse(stream : String) : Result {
+  public function parse(stream : String) : Result<A> {
     var result = this.skip(eof()).action(stream, 0);
 
     return result.status
@@ -381,7 +396,7 @@ class Parser {
   /**
    * Returns a new parser which tries parser, and if it fails uses otherParser.
    */
-  public function or(alternative : Parser) : Parser {
+  public function or(alternative : Parser<A>) : Parser<A> {
     return alt([this, alternative]);
   }
 
@@ -390,10 +405,10 @@ class Parser {
    * of the parse, which is expected to return another parser, which will be tried next. This allows you to
    * dynamically decide how to continue the parse, which is impossible with the other combinators.
    */
-  public function chain(f : Dynamic -> Parser) : Parser {
+  public function chain<B>(f : A -> Parser<B>) : Parser<B> {
     return new Parser(function(stream, i) {
       var result = this.action(stream, i);
-      if (!result.status) return result;
+      if (!result.status) return makeCopy(result);
       var nextParser = f(result.value);
       return mergeReplies(nextParser.action(stream, result.index), result);
     });
@@ -402,19 +417,24 @@ class Parser {
   /**
    * Expects anotherParser to follow parser, and yields the result of anotherParser.
    */
-  public function then(next : Parser) : Parser {
-    return seq([this, next]).map(function(results) {
-      return results[1];
+  public function then<B>(next : Parser<B>) : Parser<B> {
+    var parsers : Array<Parser<Any>> = [
+      (this : Parser<Dynamic>),
+      (next : Parser<Dynamic>)
+    ];
+
+    return seq(parsers).map(function(results) {
+      return (results[1] : B);
     });
   }
 
   /**
    * Transforms the output of parser with the given function.
    */
-  public function map(fn : Dynamic -> Dynamic) : Parser {
+  public function map<B>(fn : A -> B) : Parser<B> {
     return new Parser(function(stream, i) {
       var result = this.action(stream, i);
-      if (!result.status) return result;
+      if (!result.status) return makeCopy(result);
       return mergeReplies(makeSuccess(result.index, fn(result.value)), result);
     });
   }
@@ -422,27 +442,31 @@ class Parser {
   /**
    * Returns a new parser with the same behavior, but which yields value. Equivalent to parser.map(function(x) { return x; }.bind(value)).
    */
-  public function result(res : Dynamic) : Parser {
+  public function result<B>(res : B) : Parser<B> {
     return this.map(function(_) { return res; });
   }
 
   /**
    * Expects otherParser after parser, but yields the value of parser.
    */
-  public function skip(next : Parser) : Parser {
-    return seq([this, next]).map(function(results) {
-      return results[0];
+  public function skip<B>(next : Parser<B>) : Parser<A> {
+    var parsers : Array<Parser<Any>> = [
+      (this : Parser<Dynamic>),
+      (next : Parser<Dynamic>)
+    ];
+
+    return seq(parsers).map(function(results) {
+      return (results[0] : A);
     });
   };
 
   /**
    * Expects parser zero or more times, and yields an array of the results.
    */
-  public function many() : Parser {
+  public function many() : Parser<Array<A>> {
     return new Parser(function(stream, i) {
-      var accum = [];
+      var accum : Array<A> = [];
       var result = null;
-      var prevResult = null;
 
       while (true) {
         result = mergeReplies(this.action(stream, i), result);
@@ -461,7 +485,7 @@ class Parser {
    * Expects parser between min and max times (or exactly x times, when second argument is omitted),
    * and yields an array of the results.
    */
-  public function times(min : Int, ?max : Int) : Parser {
+  public function times(min : Int, ?max : Int) : Parser<Array<A>> {
     if (max == null) max = min;
 
     return new Parser(function(stream, i) {
@@ -476,7 +500,7 @@ class Parser {
         if (result.status) {
           i = result.index;
           accum.push(result.value);
-        } else return prevResult;
+        } else return makeCopyArray(prevResult);
       }
 
       for (times in 0...max) {
@@ -496,14 +520,14 @@ class Parser {
   /**
    * Expects parser at most n times. Yields an array of the results.
    */
-  public function atMost(n : Int) : Parser {
+  public function atMost(n : Int) : Parser<Array<A>> {
     return times(0, n);
   }
 
   /**
    * Expects parser at least n times. Yields an array of the results.
    */
-  public function atLeast(n : Int) : Parser {
+  public function atLeast(n : Int) : Parser<Array<A>> {
     return seqMap([times(n), many()], function(results) {
       return results[0].concat(results[1]);
     });
@@ -514,9 +538,19 @@ class Parser {
    * and start and end are are objects with a 0-based offset and 1-based line and column properties that represent
    * the position in the stream that contained the parsed text.
    */
-  public function mark() : Parser {
-    return seqMap([index(), this, index()], function(results) {
-      return { start: results[0], value: results[1], end: results[2] };
+  public function mark() : Parser<Mark<A>> {
+    var parsers : Array<Parser<Any>> = [
+      (index() : Parser<Dynamic>),
+      (this : Parser<Dynamic>),
+      (index() : Parser<Dynamic>)
+    ];
+
+    return seqMap(parsers, function(results) {
+      return {
+        start: (results[0] : Index),
+        value: (results[1] : A),
+        end: (results[2] : Index)
+      };
     });
   }
 
@@ -524,7 +558,7 @@ class Parser {
    * Returns a new parser whose failure message is description. For example, string('x').desc('the letter x')
    * will indicate that 'the letter x' was expected.
    */
-  public function desc(expected : String) : Parser {
+  public function desc(expected : String) : Parser<A> {
     return new Parser(function(stream, i) {
       var reply = this.action(stream, i);
       if (!reply.status) reply.expected = [expected];
@@ -535,48 +569,31 @@ class Parser {
   /**
    * This is an alias for parser.or(other)
    */
-  public function concat(other : Parser) : Parser {
+  public function concat(other : Parser<A>) : Parser<A> {
     return or(other);
   }
 
   /**
    * Returns a new failed parser with 'empty' message
    */
-  public function empty() : Parser {
+  public function empty() : Parser<A> {
     return fail('empty');
   }
 
   /**
-   * Applies other parser to new parser
+   * Makes `this` parser optional, and returns `None` in the case that
+   * the parser does not accept the current input. Otherwise, if
+   * `this` would have parsed and returned an `a`, `this.maybe()` will
+   * parse and return a `Some(a)`.
    */
-  public function ap(other : Parser) : Parser {
-    return seqMap([this, other], function(results) { return results[0](results[1]); });
-  }
-
-  /**
-   * Returns a new parser which tries parser, and if it fails returns null (like PEG optional case)
-   */
-  public function maybe() : Parser {
-    return or(of(null));
-  }
-
-  /**
-   * Returns a new parser that assigns value if result value is null (from maybe())
-   */
-  public function els(defaulting : Void -> Parser) : Parser {
-    return new Parser(function(stream, i) {
-      var result = this.action(stream, i);
-
-      if (result.status && result.value == null) {
-        result.value = defaulting();
-      }
-      
-      return result;
-    });
+  public function maybe() : Parser<Option<A>> {
+    return map(function(r) {
+      return Some(r);
+    }).or(of(None));
   }
 
   // Parser function
-  private var action : String -> Int -> Data;
+  private var action : String -> Int -> Data<A>;
 
   /**
    * The Parser object is a wrapper for a parser function.
@@ -586,11 +603,31 @@ class Parser {
    * construct your Parser from the base parsers and the
    * parser combinator methods.
    */
-  private function new(action : String -> Int -> Data) {
+  private function new(action : String -> Int -> Data<A>) {
     this.action = action;
   }
 
-  private static function makeSuccess(index : Int, value : Dynamic) : Data {
+  private static function makeCopy<A, B>(result : Data<A>) : Data<B> {
+    return {
+      status: result.status,
+      index: result.index,
+      value: null,
+      furthest: result.furthest,
+      expected: result.expected
+    };
+  }
+
+  private static function makeCopyArray<A>(result : Data<A>) : Data<Array<A>> {
+    return {
+      status: result.status,
+      index: result.index,
+      value: [result.value],
+      furthest: result.furthest,
+      expected: result.expected
+    };
+  }
+
+  private static function makeSuccess<A>(index : Int, value : A) : Data<A> {
     return {
       status: true,
       index: index,
@@ -600,7 +637,7 @@ class Parser {
     };
   }
 
-  private static function makeFailure(index : Int, expected : String) : Data {
+  private static function makeFailure<A>(index : Int, expected : String) : Data<A> {
     return {
       status: false,
       index: -1,
@@ -622,7 +659,7 @@ class Parser {
     };
   };
 
-  private static function mergeReplies(result : Data, ?last : Data) : Data {
+  private static function mergeReplies<A, B>(result : Data<A>, ?last : Data<B>) : Data<A> {
     if (last == null) return result;
     if (result.furthest > last.furthest) return result;
 
