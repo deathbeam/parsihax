@@ -6,3 +6,8 @@
 -cp lib
 -cp examples
 -x examples/Lisp.hx
+
+--next
+-cp lib
+-cp examples
+-x examples/Spoon.hx
