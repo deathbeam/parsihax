@@ -153,14 +153,18 @@ class Parser {
    * Returns a parser that looks for exactly one character from string, and yields that character.
    */
   public static function oneOf(str : String) : Parser {
-    return test(function(ch) { return str.indexOf(ch) >= 0; });
+    return test(function(ch) {
+      return str.indexOf(ch) >= 0;
+    });
   }
 
   /**
    * Returns a parser that looks for exactly one character NOT from string, and yields that character.
    */
   public static function noneOf(str : String) : Parser {
-    return test(function(ch) { return str.indexOf(ch) < 0; });
+    return test(function(ch) {
+      return str.indexOf(ch) < 0;
+    });
   }
 
   /**
@@ -311,12 +315,10 @@ class Parser {
   public static function test(predicate : String -> Bool) : Parser {
     return new Parser(function(stream, i) {
       var char = stream.charAt(i);
-      if (i < stream.length && predicate(char)) {
-        return makeSuccess(i+1, char);
-      }
-      else {
-        return makeFailure(i, 'a character matching '+predicate);
-      }
+
+      return i < stream.length && predicate(char)
+        ? makeSuccess(i+1, char)
+        : makeFailure(i, 'a character matching '+predicate);
     });
   }
 
@@ -389,9 +391,8 @@ class Parser {
    * dynamically decide how to continue the parse, which is impossible with the other combinators.
    */
   public function chain(f : Dynamic -> Parser) : Parser {
-    var self = this;
     return new Parser(function(stream, i) {
-      var result = self.action(stream, i);
+      var result = this.action(stream, i);
       if (!result.status) return result;
       var nextParser = f(result.value);
       return mergeReplies(nextParser.action(stream, result.index), result);
@@ -402,16 +403,17 @@ class Parser {
    * Expects anotherParser to follow parser, and yields the result of anotherParser.
    */
   public function then(next : Parser) : Parser {
-    return seq([this, next]).map(function(results) { return results[1]; });
+    return seq([this, next]).map(function(results) {
+      return results[1];
+    });
   }
 
   /**
    * Transforms the output of parser with the given function.
    */
   public function map(fn : Dynamic -> Dynamic) : Parser {
-    var self = this;
     return new Parser(function(stream, i) {
-      var result = self.action(stream, i);
+      var result = this.action(stream, i);
       if (!result.status) return result;
       return mergeReplies(makeSuccess(result.index, fn(result.value)), result);
     });
@@ -437,15 +439,13 @@ class Parser {
    * Expects parser zero or more times, and yields an array of the results.
    */
   public function many() : Parser {
-    var self = this;
-
     return new Parser(function(stream, i) {
       var accum = [];
       var result = null;
       var prevResult = null;
 
       while (true) {
-        result = mergeReplies(self.action(stream, i), result);
+        result = mergeReplies(this.action(stream, i), result);
 
         if (result.status) {
           i = result.index;
@@ -463,7 +463,6 @@ class Parser {
    */
   public function times(min : Int, ?max : Int) : Parser {
     if (max == null) max = min;
-    var self = this;
 
     return new Parser(function(stream, i) {
       var accum = [];
@@ -472,7 +471,7 @@ class Parser {
       var prevResult = null;
 
       for (times in 0...min) {
-        result = self.action(stream, i);
+        result = this.action(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -481,7 +480,7 @@ class Parser {
       }
 
       for (times in 0...max) {
-        result = self.action(stream, i);
+        result = this.action(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -498,15 +497,14 @@ class Parser {
    * Expects parser at most n times. Yields an array of the results.
    */
   public function atMost(n : Int) : Parser {
-    return this.times(0, n);
+    return times(0, n);
   }
 
   /**
    * Expects parser at least n times. Yields an array of the results.
    */
   public function atLeast(n : Int) : Parser {
-    var self = this;
-    return seqMap([this.times(n), this.many()], function(results) {
+    return seqMap([times(n), many()], function(results) {
       return results[0].concat(results[1]);
     });
   }
@@ -527,9 +525,8 @@ class Parser {
    * will indicate that 'the letter x' was expected.
    */
   public function desc(expected : String) : Parser {
-    var self = this;
     return new Parser(function(stream, i) {
-      var reply = self.action(stream, i);
+      var reply = this.action(stream, i);
       if (!reply.status) reply.expected = [expected];
       return reply;
     });
@@ -567,9 +564,8 @@ class Parser {
    * Returns a new parser that assigns value if result value is null (from maybe())
    */
   public function els(defaulting : Void -> Parser) : Parser {
-    var self = this;
     return new Parser(function(stream, i) {
-      var result = self.action(stream, i);
+      var result = this.action(stream, i);
 
       if (result.status && result.value == null) {
         result.value = defaulting();
