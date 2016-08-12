@@ -23,6 +23,15 @@
 -js bin/parsihax.js
 
 --next
+-python bin/parsihax.py
+
+--next
+-lua bin/parsihax.lua
+
+--next
+-as3 bin/as3
+
+--next
 -php bin/php
 
 --next
@@ -33,6 +42,3 @@
 
 --next
 -cs bin/cs
-
---next
--python bin/parsihax.py

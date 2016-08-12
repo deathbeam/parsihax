@@ -11,8 +11,8 @@ See the [test][] directory for annotated examples of parsing JSON, simple Lisp-l
 A `Parsihax.Parser` parser is an object that represents an action on a stream of text, and the promise of either an object yielded by that action on success or a message in case of failure. For example, `Parsihax.string('foo')` yields the string `'foo'` if the beginning of the stream is `'foo'`, and otherwise fails. To use nice sugar syntax, simply add this to your Haxe file
 
 ```haxe
-import parsihax.Parsihax.*;
-using parsihax.Parsihax;
+import Parsihax.*;
+using Parsihax;
 ```
 
 The method `.map` is used to transform the yielded value. For example,
