@@ -45,7 +45,7 @@ class Test {
     
     trace(switch(output) {
       case Success(value):
-        value;
+        Std.string(value);
       case Failure(index, expected):
         formatError(input, index, expected);
     });
