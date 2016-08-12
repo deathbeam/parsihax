@@ -2,10 +2,6 @@ package parsihax;
 
 import haxe.ds.Option;
 
-private abstract Any(Dynamic) from Dynamic {
-  @:noCompletion @:to inline function __promote<A>():A return this;
-}
-
 typedef Index = {
   var offset: Int;
   var line: Int;
@@ -418,13 +414,8 @@ class Parser<A> {
    * Expects anotherParser to follow parser, and yields the result of anotherParser.
    */
   public function then<B>(next : Parser<B>) : Parser<B> {
-    var parsers : Array<Parser<Any>> = [
-      (this : Parser<Dynamic>),
-      (next : Parser<Dynamic>)
-    ];
-
-    return seq(parsers).map(function(results) {
-      return (results[1] : B);
+    return chain(function(result) {
+      return next;
     });
   }
 
@@ -450,13 +441,8 @@ class Parser<A> {
    * Expects otherParser after parser, but yields the value of parser.
    */
   public function skip<B>(next : Parser<B>) : Parser<A> {
-    var parsers : Array<Parser<Any>> = [
-      (this : Parser<Dynamic>),
-      (next : Parser<Dynamic>)
-    ];
-
-    return seq(parsers).map(function(results) {
-      return (results[0] : A);
+    return chain(function(result) {
+      return next.result(result);
     });
   };
 
@@ -538,18 +524,16 @@ class Parser<A> {
    * the position in the stream that contained the parsed text.
    */
   public function mark() : Parser<Mark<A>> {
-    var parsers : Array<Parser<Any>> = [
-      (index() : Parser<Dynamic>),
-      (this : Parser<Dynamic>),
-      (index() : Parser<Dynamic>)
-    ];
-
-    return seqMap(parsers, function(results) {
-      return {
-        start: (results[0] : Index),
-        value: (results[1] : A),
-        end: (results[2] : Index)
-      };
+    return index().chain(function(start) {
+      return chain(function(value) {
+        return index().map(function(end) {
+          return {
+            start: start,
+            value: value,
+            end: end
+          };
+        });
+      });
     });
   }
 

@@ -1,3 +1,5 @@
+package test;
+
 import parsihax.Parser;
 import parsihax.Parser.Ref;
 import parsihax.Parser as P;
