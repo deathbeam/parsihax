@@ -5,7 +5,7 @@ Parsihax is a small library for writing big parsers made up of lots of little pa
 Originally, it started by rewriting [Parsimmon][parsimmon] to Haxe.
 
 ## Examples
-See the [test][] directory for annotated examples of parsing JSON, Lisp, and simpe programming language.
+See the [test][] directory for annotated examples of parsing JSON, Lisp, and simple programming language.
 
 ## Basics
 
@@ -21,8 +21,8 @@ Parser.string('foo')
 will yield `'foobar'` if the stream starts with `'foo'`. The parser
 
 ```haxe
-Parser.regexp(/[0-9]+/)
-  .map(function(x) { return Number(x) * 2; })
+Parser.regexp(~/[0-9]+/)
+  .map(function(x) { return Std.parseInt(x) * 2; })
 ```
 
 will yield the number `24` when it encounters the string `'12'`.
