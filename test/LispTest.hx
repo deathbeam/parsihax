@@ -22,11 +22,13 @@ class LispTest {
 
     // The basic parsers (usually the ones described via regexp) should have a
     // description for error message purposes.
-    var LSymbol = ~/[a-zA-Z_-][a-zA-Z0-9_-]*/.regexp()
+    var LSymbol =
+      ~/[a-zA-Z_-][a-zA-Z0-9_-]*/.regexp()
       .map(function(r) return LispSymbol(r))
       .desc('symbol');
 
-    var LNumber = ~/[0-9]+/.regexp()
+    var LNumber =
+      ~/[0-9]+/.regexp()
       .map(function (result) return LispNumber(Std.parseInt(result)))
       .desc('number');
 
@@ -35,17 +37,17 @@ class LispTest {
     // `.yielded value from this parser.
     var LList =
       '('.string()
-        .then(spaced(LExpression).many())
-        .skip(')'.string())
-        .map(function(r) return LispList(r));
+      .then(spaced(LExpression).many())
+      .skip(')'.string())
+      .map(function(r) return LispList(r));
 
     LExpression.set(function() {
-        return [
-          LSymbol,
-          LNumber,
-          LList
-        ].alt();
-      }.lazy());
+      return [
+        LSymbol,
+        LNumber,
+        LList
+      ].alt();
+    }.lazy());
 
     // Let's remember to throw away whitespace at the top level of the parser.
     var lisp = spaced(LExpression);

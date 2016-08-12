@@ -95,42 +95,42 @@ class Parsihax {
    * Equivalent to regexp [a-z] /i
    */
   inline public static function letter() : Parser<String> {
-    return regexp(~/[a-z]/i).desc('a letter');
+    return ~/[a-z]/i.regexp().desc('a letter');
   }
 
   /**
    * Equivalent to regexp [a-z]* /i
    */
   inline public static function letters() : Parser<String> {
-    return regexp(~/[a-z]*/i);
+    return ~/[a-z]*/i.regexp();
   }
 
   /**
    * Equivalent to regex [0-9]
    */
   inline public static function digit() : Parser<String> {
-    return regexp(~/[0-9]/).desc('a digit');
+    return ~/[0-9]/.regexp().desc('a digit');
   }
 
   /**
    * Equivalent to regexp [0-9]*
    */
   inline public static function digits() : Parser<String> {
-    return regexp(~/[0-9]*/);
+    return ~/[0-9]*/.regexp();
   }
 
   /**
    * Equivalent to regexp \s+
    */
   inline public static function whitespace() : Parser<String> {
-    return regexp(~/\s+/).desc('whitespace');
+    return ~/\s+/.regexp().desc('whitespace');
   }
 
   /**
    * Equivalent to regexp \s*
    */
   inline public static function optWhitespace() : Parser<String> {
-    return regexp(~/\s*/);
+    return ~/\s*/.regexp();
   }
 
   /**
@@ -204,18 +204,14 @@ class Parsihax {
    * Returns a parser that looks for exactly one character from string, and yields that character.
    */
   public static function oneOf(str : String) : Parser<String> {
-    return test(function(ch) {
-      return str.indexOf(ch) >= 0;
-    });
+    return function(ch) { return str.indexOf(ch) >= 0; }.test();
   }
 
   /**
    * Returns a parser that looks for exactly one character NOT from string, and yields that character.
    */
   public static function noneOf(str : String) : Parser<String> {
-    return test(function(ch) {
-      return str.indexOf(ch) < 0;
-    });
+    return function(ch) { return str.indexOf(ch) < 0; }.test();
   }
 
   /**
@@ -244,7 +240,7 @@ class Parsihax {
   /**
    * This is an alias for Parser.regexp
    */
-  public static function regex(re : EReg, group : Int = 0) : Parser<String> {
+  inline public static function regex(re : EReg, group : Int = 0) : Parser<String> {
     return regexp(re, group);
   }
 
@@ -252,15 +248,13 @@ class Parsihax {
    * Returns a parser that doesn't consume any of the string, and yields result. 
    */
   public static function succeed<A>(value : A) : Parser<A> {
-    return new Parser(function(stream, i) {
-      return makeSuccess(i, value);
-    });
+    return new Parser(function(stream, i) return makeSuccess(i, value));
   }
 
   /**
    * This is an alias for Parser.succeed(result). 
    */
-  public static function of<A>(value : A) : Parser<A> {
+  inline public static function of<A>(value : A) : Parser<A> {
     return succeed(value);
   }
 
@@ -290,9 +284,7 @@ class Parsihax {
    * and then .map.
    */
   public static function seqMap<A, B>(parsers : Array<Parser<A>>, mapper : Array<A> -> B) : Parser<B> {
-    return seq(parsers).map(function(results) {
-      return mapper(results);
-    });
+    return parsers.seq().map(function(results) return mapper(results));
   }
 
   /**
@@ -318,8 +310,8 @@ class Parsihax {
   /**
    * Accepts two parsers, and expects zero or more matches for content, separated by separator, yielding an array.
    */
-  public static function sepBy<A, B>(parser : Parser<A>, separator : Parser<B>) : Parser<Array<A>> {
-    return sepBy1(parser, separator).or(of([]));
+  inline public static function sepBy<A, B>(parser : Parser<A>, separator : Parser<B>) : Parser<Array<A>> {
+    return parser.sepBy1(separator).or(of([]));
   }
 
   /**
@@ -355,9 +347,7 @@ class Parsihax {
    * Returns a failing parser with the given message.
    */
   public static function fail<A>(expected : String) : Parser<A> {
-    return new Parser(function(stream, i) {
-      return makeFailure(i, expected);
-    });
+    return new Parser(function(stream, i) return makeFailure(i, expected));
   }
 
   /**
@@ -457,9 +447,7 @@ class Parsihax {
    * Expects anotherParser to follow parser, and yields the result of anotherParser.
    */
   public static function then<A, B>(parser: Parser<A>, next : Parser<B>) : Parser<B> {
-    return parser.chain(function(result) {
-      return next;
-    });
+    return parser.chain(function(result) return next);
   }
 
   /**
@@ -484,9 +472,7 @@ class Parsihax {
    * Expects otherParser after parser, but yields the value of parser.
    */
   public static function skip<A, B>(parser: Parser<A>, next : Parser<B>) : Parser<A> {
-    return parser.chain(function(result) {
-      return next.result(result);
-    });
+    return parser.chain(function(result) return next.result(result));
   };
 
   /**
@@ -548,7 +534,7 @@ class Parsihax {
   /**
    * Expects parser at most n times. Yields an array of the results.
    */
-  public static function atMost<A>(parser: Parser<A>, n : Int) : Parser<Array<A>> {
+  inline public static function atMost<A>(parser: Parser<A>, n : Int) : Parser<Array<A>> {
     return parser.times(0, n);
   }
 
@@ -595,7 +581,7 @@ class Parsihax {
   /**
    * This is an alias for parser.or(other)
    */
-  public static function concat<A>(parser: Parser<A>, other : Parser<A>) : Parser<A> {
+  inline public static function concat<A>(parser: Parser<A>, other : Parser<A>) : Parser<A> {
     return parser.or(other);
   }
 
@@ -618,7 +604,7 @@ class Parsihax {
     }).or(of(None));
   }
 
-  private static function makeSuccess<A>(index : Int, value : A) : Data<A> {
+  inline private static function makeSuccess<A>(index : Int, value : A) : Data<A> {
     return {
       status: true,
       index: index,
@@ -628,7 +614,7 @@ class Parsihax {
     };
   }
 
-  private static function makeFailure<A>(index : Int, expected : String) : Data<A> {
+  inline private static function makeFailure<A>(index : Int, expected : String) : Data<A> {
     return {
       status: false,
       index: -1,
