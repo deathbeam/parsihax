@@ -1,7 +1,7 @@
 -cp src
 -cp test
 -dce full
--main Test
+-main test.Test
 --each
 
 -dce std
