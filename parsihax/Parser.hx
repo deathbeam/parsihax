@@ -131,7 +131,7 @@ class Parser<A> {
    */
   public static function index() : Parser<Index> {
     return new Parser(function(stream, i) {
-      return makeSuccess(i, makeLineColumnIndex(stream, i));
+      return makeSuccess(i, makeIndex(stream, i));
     });
   }
 
@@ -237,7 +237,7 @@ class Parser<A> {
 
       for (parser in parsers) {
         result = mergeReplies(parser.action(stream, i), result);
-        if (!result.status) return makeCopy(result);
+        if (!result.status) return cast(result);
         accum.push(result.value);
         i = result.index;
       }
@@ -390,7 +390,7 @@ class Parser<A> {
 
     return result.status
       ? Success(result.value)
-      : Failure(makeLineColumnIndex(stream, result.furthest), result.expected);
+      : Failure(makeIndex(stream, result.furthest), result.expected);
   }
 
   /**
@@ -408,7 +408,7 @@ class Parser<A> {
   public function chain<B>(f : A -> Parser<B>) : Parser<B> {
     return new Parser(function(stream, i) {
       var result = this.action(stream, i);
-      if (!result.status) return makeCopy(result);
+      if (!result.status) return cast(result);
       var nextParser = f(result.value);
       return mergeReplies(nextParser.action(stream, result.index), result);
     });
@@ -434,7 +434,7 @@ class Parser<A> {
   public function map<B>(fn : A -> B) : Parser<B> {
     return new Parser(function(stream, i) {
       var result = this.action(stream, i);
-      if (!result.status) return makeCopy(result);
+      if (!result.status) return cast(result);
       return mergeReplies(makeSuccess(result.index, fn(result.value)), result);
     });
   }
@@ -500,7 +500,7 @@ class Parser<A> {
         if (result.status) {
           i = result.index;
           accum.push(result.value);
-        } else return makeCopyArray(prevResult);
+        } else return cast(prevResult);
       }
 
       for (times in 0...max) {
@@ -509,8 +509,7 @@ class Parser<A> {
         if (result.status) {
           i = result.index;
           accum.push(result.value);
-        }
-        else break;
+        } else break;
       }
 
       return mergeReplies(makeSuccess(i, accum), prevResult);
@@ -607,26 +606,6 @@ class Parser<A> {
     this.action = action;
   }
 
-  private static function makeCopy<A, B>(result : Data<A>) : Data<B> {
-    return {
-      status: result.status,
-      index: result.index,
-      value: null,
-      furthest: result.furthest,
-      expected: result.expected
-    };
-  }
-
-  private static function makeCopyArray<A>(result : Data<A>) : Data<Array<A>> {
-    return {
-      status: result.status,
-      index: result.index,
-      value: [result.value],
-      furthest: result.furthest,
-      expected: result.expected
-    };
-  }
-
   private static function makeSuccess<A>(index : Int, value : A) : Data<A> {
     return {
       status: true,
@@ -647,7 +626,7 @@ class Parser<A> {
     };
   }
 
-  private static function makeLineColumnIndex(stream : String, i : Int) : Index {
+  private static function makeIndex(stream : String, i : Int) : Index {
     var lines = stream.substring(0, i).split("\n");
     var lineWeAreUpTo = lines.length;
     var columnWeAreUpTo = lines[lines.length - 1].length + 1;
