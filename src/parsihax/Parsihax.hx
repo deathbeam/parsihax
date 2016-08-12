@@ -66,31 +66,6 @@ class Parser<A> {
 **/
 class Parsihax {
   /**
-    Monax compatibility.
-    Function for initializing the monad sugar. 
-  **/
-  macro public static function monad(body : haxe.macro.Expr) {
-    return Monad._dO("Parsihax", body, haxe.macro.Context);
-  }
-
-  /**
-    Monax compatibility.
-    This is an alias for `Parsihax.succeed`. 
-  **/
-  inline public static function ret<T>(v : T) : Parser<T> {
-    return v.succeed();
-  }
-
-  /**
-    Monax compatibility.
-    This is an alias for `Parsihax.chain`. 
-  **/
-  inline public static function flatMap<T,U>(p1 : Parser<T> , fp2 : T -> Parser<U>) : Parser<U> {
-    return p1.chain(fp2);
-  }
-
-
-  /**
     Equivalent to regexp [a-z] /i
   **/
   inline public static function letter() : Parser<String> {
@@ -586,6 +561,30 @@ class Parsihax {
     return parser.map(function(r) {
       return Some(r);
     }).or(of(None));
+  }
+
+  /**
+    Monax compatibility.
+    Function for initializing the monad sugar. 
+  **/
+  macro public static function monad(body : haxe.macro.Expr) {
+    return Monad._dO("Parsihax", body, haxe.macro.Context);
+  }
+
+  /**
+    Monax compatibility.
+    This is an alias for `Parsihax.succeed`. 
+  **/
+  inline public static function ret<T>(v : T) : Parser<T> {
+    return v.succeed();
+  }
+
+  /**
+    Monax compatibility.
+    This is an alias for `Parsihax.chain`. 
+  **/
+  inline public static function flatMap<T,U>(p1 : Parser<T> , fp2 : T -> Parser<U>) : Parser<U> {
+    return p1.chain(fp2);
   }
 
   inline private static function makeSuccess<A>(index : Int, value : A) : Data<A> {

@@ -19,14 +19,14 @@ The method `.map` is used to transform the yielded value. For example,
 
 ```haxe
 'foo'.string()
-  .map(function(x) return x + 'bar')
+  .map(function(x) return x + 'bar');
 ```
 
 will yield `'foobar'` if the stream starts with `'foo'`. The parser
 
 ```haxe
 ~/[0-9]+/.regexp()
-  .map(function(x) return Std.parseInt(x) * 2)
+  .map(function(x) return Std.parseInt(x) * 2);
 ```
 
 will yield the number `24` when it encounters the string `'12'`.
@@ -39,7 +39,7 @@ monad({
   b <= "b".string();
   c <= "c".string();
   ret([a,b,c]);
-}).parse(text);
+});
 ```
 
 will yield `[ 'a', 'b', 'c']` when it encounters the string `'abc'`.
