@@ -175,6 +175,14 @@ class Parsihax {
   }
 
   /**
+    Returns a parser that looks for exactly one `character` and yields that exact value.
+    This combinator is faster than `string` in case of matching single character.
+  **/
+  public static function char(character : String) : Parser<String> {
+    return function(ch) { return character == ch; }.test().desc("'"+character+"'");
+  }
+
+  /**
     Returns a parser that looks for exactly one character from string, and yields that character.
   **/
   public static function oneOf(str : String) : Parser<String> {
@@ -325,7 +333,7 @@ class Parsihax {
 
       return i < stream.length && predicate(char)
         ? makeSuccess(i+1, char)
-        : makeFailure(i, 'a character matching '+predicate);
+        : makeFailure(i, 'a character matching ' + predicate);
     });
   }
 
