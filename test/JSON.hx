@@ -1,13 +1,26 @@
 package test;
 
+import test.JSON.JSONExpression;
 import parsihax.Parser;
 import parsihax.Parser.Ref;
 import parsihax.Parser as P;
 
+// ADT definition
+enum JSONExpression {
+  JSONNull;
+  JSONTrue;
+  JSONFalse;
+  JSONNumber(v : Int);
+  JSONString(v : String);
+  JSONPair(k : JSONExpression, v : JSONExpression);
+  JSONArray(v : Array<JSONExpression>);
+  JSONObject(v : Array<JSONExpression>);
+}
+
 class JSON {
   public static function parse(text : String) {
     // Create reference to JSON first so we will be able to recurse
-    var json : Ref<Dynamic> = P.ref();
+    var json = P.ref();
 
     // Turn escaped characters into real ones (e.g. "\\n" becoems "\n").
     function interpretEscapes(str) {
@@ -19,14 +32,14 @@ class JSON {
         't' => '\\t'
       ];
 
-      return ~/\\(u[0-9a-fA-F]{4}|[^u])/.map(str, function(reg) {
+      return JSONString(~/\\(u[0-9a-fA-F]{4}|[^u])/.map(str, function(reg) {
         var escape = reg.matched(0);
         var type = escape.charAt(0);
         var hex = escape.substr(1);
         if (type == 'u') return String.fromCharCode(Std.parseInt(hex));
         if (escapes.exists(type)) return escapes[type];
         return type;
-      });
+      }));
     }
 
     // Use the JSON standard's definition of whitespace rather than Parsihax's.
@@ -53,44 +66,32 @@ class JSON {
 
     // `.result` is like `.map` but it takes a value instead of a function, and
     // `.always returns the same value.
-    var nullLiteral : Parser<Dynamic> = token(P.string('null')).result(null);
-    var trueLiteral : Parser<Dynamic> = token(P.string('true')).result(true);
-    var falseLiteral : Parser<Dynamic> = token(P.string('false')).result(false);
+    var nullLiteral = token(P.string('null')).result(JSONNull);
+    var trueLiteral = token(P.string('true')).result(JSONTrue);
+    var falseLiteral = token(P.string('false')).result(JSONFalse);
 
     // Regexp based parsers should generally be named for better error reporting.
-    var stringLiteral : Parser<Dynamic> =
+    var stringLiteral =
       token(P.regexp(~/"((?:\\.|.)*?)"/, 1))
         .map(interpretEscapes)
         .desc('string');
 
-    var numberLiteral : Parser<Dynamic> =
+    var numberLiteral =
       token(P.regexp(~/-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/))
-        .map(function (result) { return Std.parseInt(result); })
+        .map(function (result) { return JSONNumber(Std.parseInt(result)); })
         .desc('number');
 
     // Array parsing is just ignoring brackets and commas and parsing as many nested
     // JSON documents as possible. Notice that we're using the parser `json` we just
     // defined above. Arrays and objects in the JSON grammar are recursive because
     // they can contain any other JSON document within them.
-    var array : Parser<Dynamic> = lbracket.then(commaSep(json)).skip(rbracket);
+    var array = lbracket.then(commaSep(json)).skip(rbracket).map(function(results) return JSONArray(results));
 
     // Object parsing is a little trickier because we have to collect all the key-
     // value pairs in order as length-2 arrays, then manually copy them into an
     // object.
-    var pair : Parser<Dynamic> = P.seq([stringLiteral.skip(colon), json]);
-
-    var object : Parser<Dynamic> =
-      lbrace.then(commaSep(pair)).skip(rbrace).map(function(pairs) {
-        var out = new Map<String, Dynamic>();
-        var rPairs : Array<Dynamic> = pairs;
-
-        for (pair in rPairs) {
-          out[pair[0]] = pair[1];
-        }
-
-        return out;
-      });
-    
+    var pair = P.seq([stringLiteral.skip(colon), json]).map(function(results) return JSONPair(results[0], results[1]));
+    var object = lbrace.then(commaSep(pair)).skip(rbrace).map(function(pairs) return JSONObject(pairs));
 
     // This is the main entry point of the parser: a full JSON document.
     json.set(P.lazy(function() {

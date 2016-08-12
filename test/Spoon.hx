@@ -8,7 +8,7 @@ class Spoon {
     var spoon = ref();
 
     var spaces = optWhitespace();
-    function token(parser) {
+    function token(parser : Parser<Dynamic>) : Parser<Dynamic> {
       return parser.skip(spaces);
     }
 

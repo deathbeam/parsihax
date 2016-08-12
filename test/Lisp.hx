@@ -23,7 +23,7 @@ class Lisp {
     // `.then` throws away the first value, and `.skip` throws away the second
     // `.value, so we're left with just the `spaced(LExpression).many()` part as the
     // `.yielded value from this parser.
-    var LList : Parser<Array<Dynamic>> =
+    var LList : Parser<Dynamic> =
       P.string('(')
         .then(spaced(LExpression).many())
         .skip(P.string(')'));

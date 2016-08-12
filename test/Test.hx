@@ -28,7 +28,7 @@ class Test {
 
     switch(JSON.parse(json)) {
       case Success(value):
-        trace(cast(value, Map<Dynamic, Dynamic>));
+        trace(value);
       case Failure(index, expected):
         trace(P.formatError(json, index, expected));
     }
