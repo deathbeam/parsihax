@@ -1,11 +1,10 @@
 # Parsihax
 [![TravisCI Build Status](https://api.travis-ci.org/deathbeam/parsihax.svg?branch=master)](https://travis-ci.org/deathbeam/parsihax)
 
-`Parsihax` is a small library for writing big parsers made up of lots of little parsers. The API is inspired by [parsec][] and [Promises/A+][promises-aplus].
-Originally, it started by rewriting [Parsimmon][parsimmon] to Haxe.
+`Parsihax` is a small library for writing big parsers made up of lots of little parsers. The API is inspired by [parsec][], [Promises/A+][promises-aplus] and [Parsimmon][parsimmon] (originally, `Parsihax` was just supposed to be Parsimmon rewrite in Haxe).
 
 ## Examples
-See the [test][] directory for annotated examples of parsing JSON and simple Lisp-like structure.
+See the [test][] directory for annotated examples of parsing JSON, simple Lisp-like structure and monad parser.
 
 ## Basics
 
@@ -32,12 +31,26 @@ will yield `'foobar'` if the stream starts with `'foo'`. The parser
 
 will yield the number `24` when it encounters the string `'12'`.
 
+Also, `Parsihax` supports nice monad sugar syntax (thanks to [monax][]). For example,
+
+```haxe
+monad({
+  a <= "a".string();
+  b <= "b".string();
+  c <= "c".string();
+  ret([a,b,c]);
+}).parse(text);
+```
+
+will yield `[ 'a', 'b', 'c']` when it encounters the string `'abc'`.
+
 Calling `.parse(string)` on a parser parses the string and returns an enum with that can be `Success(value)` or `Failure(index, expected)`, indicating whether the parse succeeded. If it succeeded, the `value` attribute will contain the yielded value. Otherwise, the `index` and `expected` attributes will contain the index of the parse error (with `offset`, `line` and `column` properties), and a sorted, unique array of messages indicating what was expected.
 
 The failure results can be passed along with the original source to `Parsihax.formatError(source, index, expected)` to obtain a human-readable error string.
 
 [test]: https://github.com/deathbeam/parsihax/tree/master/test
 
+[monax]: https://github.com/sledorze/monax
 [promises-aplus]: https://promisesaplus.com/
 [parsec]: https://hackage.haskell.org/package/parsec
 [parsimmon]: https://github.com/jneen/parsimmon
