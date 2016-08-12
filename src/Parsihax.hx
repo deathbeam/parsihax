@@ -1,8 +1,6 @@
-package parsihax;
-
 import haxe.ds.Option;
 import com.mindrocks.monads.Monad;
-using parsihax.Parsihax;
+using Parsihax;
 
 typedef Index = {
   var offset: Int;

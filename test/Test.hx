@@ -1,7 +1,5 @@
-package test;
-
-import parsihax.Parsihax.Result;
-import parsihax.Parsihax.formatError;
+import Parsihax.Result;
+import Parsihax.formatError;
 
 class Test {
   public static function main() {

@@ -1,7 +1,5 @@
-package test;
-
-import parsihax.Parsihax.*;
-using parsihax.Parsihax;
+import Parsihax.*;
+using Parsihax;
 
 class MonadTest {
   public static function parse(text : String) {

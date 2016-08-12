@@ -1,7 +1,5 @@
-package test;
-
-import parsihax.Parsihax.*;
-using parsihax.Parsihax;
+import Parsihax.*;
+using Parsihax;
 
 enum LispExpression {
   LispNumber(v: Int);

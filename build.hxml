@@ -2,7 +2,7 @@
 -cp test
 -lib monax
 -dce full
--main test.Test
+-main Test
 --each
 
 -dce std
