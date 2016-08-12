@@ -21,17 +21,17 @@ class JSONTest {
     var json = ref();
 
     // Use the JSON standard's definition of whitespace rather than Parsihax's.
-    var ws = ~/\s*/m.regexp();
+    var whitespace = ~/\s*/m.regexp();
 
     // JSON is pretty relaxed about whitespace, so let's make it easy to ignore
     // after most text.
-    function token<T>(parser : Parser<T>) {
-      return parser.skip(ws);
+    function token(parser) {
+      return skip(parser, whitespace);
     }
 
     // This gets reused for both array and object parsing.
-    function commaSep<T>(parser : Parser<T>) {
-      return parser.sepBy(token(','.string()));
+    function commaSep(parser) {
+      return sepBy(parser, token(','.string()));
     }
 
     // The basic tokens in JSON, with optional whitespace afterward.
@@ -96,7 +96,7 @@ class JSONTest {
 
     // This is the main entry point of the parser: a full JSON document.
     json.set(function() {
-      return ws.then([
+      return whitespace.then([
         object,
         array,
         stringLiteral,
