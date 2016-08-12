@@ -9,19 +9,24 @@ See the [test][] directory for annotated examples of parsing JSON, Lisp, and sim
 
 ## Basics
 
-A Parsihax parser is an object that represents an action on a stream of text, and the promise of either an object yielded by that action on success or a message in case of failure. For example, `Parser.string('foo')` yields the string `'foo'` if the beginning of the stream is `'foo'`, and otherwise fails.
+A Parsihax parser is an object that represents an action on a stream of text, and the promise of either an object yielded by that action on success or a message in case of failure. For example, `Parser.string('foo')` yields the string `'foo'` if the beginning of the stream is `'foo'`, and otherwise fails. To use nice sugar syntax, simply add this to your Haxe file
+
+```haxe
+import parsihax.Parser.*;
+using parsihax.Parser;
+```
 
 The method `.map` is used to transform the yielded value. For example,
 
 ```haxe
-Parser.string('foo')
+'foo'.string()
   .map(function(x) { return x + 'bar'; })
 ```
 
 will yield `'foobar'` if the stream starts with `'foo'`. The parser
 
 ```haxe
-Parser.regexp(~/[0-9]+/)
+~/[0-9]+/.regexp()
   .map(function(x) { return Std.parseInt(x) * 2; })
 ```
 

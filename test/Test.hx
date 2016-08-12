@@ -1,6 +1,7 @@
 package test;
 
-import parsihax.Parser as P;
+import parsihax.Parser.Result;
+import parsihax.Parser.formatError;
 
 class Test {
   public static function main() {
@@ -26,35 +27,27 @@ class Test {
       ]
     }';
 
-    switch(JSON.parse(json)) {
-      case Success(value):
-        trace(value);
-      case Failure(index, expected):
-        trace(P.formatError(json, index, expected));
-    }
+    printAndParse('JSON', json, JSON.parse(json));
 
     var lisp = '( abc 89 ( c d 33 haleluje) )';
 
-    switch(Lisp.parse(lisp)) {
-      case Success(value):
-        trace(value);
-      case Failure(index, expected):
-        trace(P.formatError(lisp, index, expected));
-    }
+    printAndParse('Lisp', lisp, Lisp.parse(lisp));
+  }
 
-    var spoon = 'do
-      true
-      "hello"
-      67
-      false
-      null 
-    end';
-
-    switch(Spoon.parse(spoon)) {
+  private static function printAndParse<T>(name : String, input : String, output : Result<T>) {
+    Sys.println('-----------------------------------');
+    Sys.println('Parser input ($name)');
+    Sys.println('-----------------------------------');
+    Sys.println('    $input');
+    Sys.println('-----------------------------------');
+    Sys.println('Parser output ($name)');
+    Sys.println('-----------------------------------');
+    
+    Sys.println(switch(output) {
       case Success(value):
-        trace(value);
+        value;
       case Failure(index, expected):
-        trace(P.formatError(spoon, index, expected));
-    }
+        formatError(input, index, expected);
+    });
   }
 }
