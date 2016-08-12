@@ -20,14 +20,14 @@ The method `.map` is used to transform the yielded value. For example,
 
 ```haxe
 'foo'.string()
-  .map(function(x) { return x + 'bar'; })
+  .map(function(x) return x + 'bar')
 ```
 
 will yield `'foobar'` if the stream starts with `'foo'`. The parser
 
 ```haxe
 ~/[0-9]+/.regexp()
-  .map(function(x) { return Std.parseInt(x) * 2; })
+  .map(function(x) return Std.parseInt(x) * 2)
 ```
 
 will yield the number `24` when it encounters the string `'12'`.
