@@ -1,13 +1,37 @@
--cp lib
--cp examples
--x examples/JSON.hx
+-cp src
+-cp test
+-dce full
+-main Test
+--each
+
+-dce std
+-xml bin/parsihax.xml
 
 --next
--cp lib
--cp examples
--x examples/Lisp.hx
+-D dump=pretty
+-neko bin/parsihax.n
 
 --next
--cp lib
--cp examples
--x examples/Spoon.hx
+-swf bin/parsihax.swf
+
+--next
+-swf-version 8
+-swf bin/parsihax8.swf
+
+--next
+-js bin/parsihax.js
+
+--next
+-php bin/php
+
+--next
+-cpp bin/cpp
+
+--next
+-java bin/java
+
+--next
+-cs bin/cs
+
+--next
+-python bin/parsihax.py

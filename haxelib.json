@@ -1,0 +1,12 @@
+{
+  "name": "parsihax",
+  "url" : "https://github.com/deathbeam/parsihax",
+  "license": "MIT",
+  "tags": ["parser", "parsing",  "cross", "utility"],
+  "description": "A monadic LL(infinity) parser combinator library for Haxe.",
+  "version": "0.1.0",
+  "classPath": "src/",
+  "releasenote": "First release",
+  "contributors": ["deathbeam"],
+  "dependencies": {}
+}

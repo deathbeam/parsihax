@@ -1,11 +1,9 @@
-package examples;
-
 import parsihax.Parser;
 import parsihax.Parser.Ref;
 import parsihax.Parser as P;
 
 class JSON {
-  public static function main() {
+  public static function parse(text : String) {
     // Create reference to JSON first so we will be able to recurse
     var json : Ref<Dynamic> = P.ref();
 
@@ -105,35 +103,6 @@ class JSON {
       ]));
     }));
 
-    ///////////////////////////////////////////////////////////////////////
-    // TODO: Mixing numberLiteral and stringLiteral is for some reason not working
-    var text = '{
-      "firstName": "John",
-      "lastName": "Smith",
-      "age": 25,
-      "address": {
-        "streetAddress": "21 2nd Street",
-        "city": "New York",
-        "state": "NY",
-        "postalCode": "10021"
-      },
-      "phoneNumber": [
-        {
-          "type": "home",
-          "number": "212 555-1234"
-        },
-        {
-          "type": "fax",
-          "number": "646 555-4567"
-        }
-      ]
-    }';
-
-    switch(json.parse(text)) {
-      case Success(value):
-        trace(cast(value, Map<String, Dynamic>));
-      case Failure(index, expected):
-        trace(P.formatError(text, index, expected));
-    }
+    return json.parse(text);
   }
 }

@@ -1,10 +1,8 @@
-package examples;
-
 import parsihax.Parser;
 import parsihax.Parser.*;
 
 class Spoon {
-  public static function main() {
+  public static function parse(text : String) {
     var spoon = ref();
 
     var spaces = optWhitespace();
@@ -43,19 +41,6 @@ class Spoon {
       return spaces.then(Block).skip(eof());
     }));
 
-    var text = 'do
-      true
-      "hello"
-      67
-      false
-      null 
-    end';
-
-    switch(spoon.parse(text)) {
-      case Success(value):
-        trace(value);
-      case Failure(index, expected):
-        trace(formatError(text, index, expected));
-    }
+    return spoon.parse(text);
   }
 }

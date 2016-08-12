@@ -1,11 +1,9 @@
-package examples;
-
 import parsihax.Parser;
 import parsihax.Parser.Ref;
 import parsihax.Parser as P;
 
 class Lisp {
-  public static function main() {
+  public static function parse(text : String) {
     // A little helper to wrap a parser with optional whitespace.
     function spaced(parser) {
       return P.optWhitespace().then(parser).skip(P.optWhitespace());
@@ -39,15 +37,7 @@ class Lisp {
     // Let's remember to throw away whitespace at the top level of the parser.
     var lisp = spaced(LExpression);
 
-    ///////////////////////////////////////////////////////////////////////
 
-    var text = '( abc 89 ( c d 33 haleluje) )';
-
-    switch(lisp.parse(text)) {
-      case Success(value):
-        trace(value);
-      case Failure(index, expected):
-        trace(P.formatError(text, index, expected));
-    }
+    return lisp.parse(text);
   }
 }
