@@ -1,7 +1,7 @@
 package test;
 
-import parsihax.Parser.Result;
-import parsihax.Parser.formatError;
+import parsihax.Parsihax.Result;
+import parsihax.Parsihax.formatError;
 
 class Test {
   public static function main() {
@@ -27,11 +27,15 @@ class Test {
       ]
     }';
 
-    printAndParse('JSON', json, JSON.parse(json));
+    printAndParse('JSON', json, JSONTest.parse(json));
 
     var lisp = '( abc 89 ( c d 33 haleluje) )';
 
-    printAndParse('Lisp', lisp, Lisp.parse(lisp));
+    printAndParse('Lisp', lisp, LispTest.parse(lisp));
+
+    var monad = "abc";
+
+    printAndParse('Monad', monad, MonadTest.parse(monad));
   }
 
   private static function printAndParse<T>(name : String, input : String, output : Result<T>) {

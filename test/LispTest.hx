@@ -1,9 +1,7 @@
 package test;
 
-import parsihax.Parser;
-import parsihax.Parser.Ref;
-import parsihax.Parser.*;
-using parsihax.Parser;
+import parsihax.Parsihax.*;
+using parsihax.Parsihax;
 
 enum LispExpression {
   LispNumber(v: Int);
@@ -11,7 +9,7 @@ enum LispExpression {
   LispList(v : Array<LispExpression>);
 }
 
-class Lisp {
+class LispTest {
   public static function parse(text : String) {
     // A little helper to wrap a parser with optional whitespace.
     function spaced(parser) {

@@ -1,9 +1,7 @@
 package test;
 
-import parsihax.Parser;
-import parsihax.Parser.Ref;
-import parsihax.Parser.*;
-using parsihax.Parser;
+import parsihax.Parsihax.*;
+using parsihax.Parsihax;
 
 // ADT definition
 enum JSONExpression {
@@ -17,7 +15,7 @@ enum JSONExpression {
   JSONObject(v : Array<JSONExpression>);
 }
 
-class JSON {
+class JSONTest {
   public static function parse(text : String) {
     // Create reference to JSON first so we will be able to recurse
     var json = ref();
@@ -28,7 +26,7 @@ class JSON {
     // JSON is pretty relaxed about whitespace, so let's make it easy to ignore
     // after most text.
     function token(p) {
-      return p.skip(whitespace);
+      return skip(p, whitespace);
     }
 
     // This gets reused for both array and object parsing.

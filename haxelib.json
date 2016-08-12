@@ -4,9 +4,9 @@
   "license": "MIT",
   "tags": ["parser", "parsing",  "cross", "utility"],
   "description": "A monadic LL(infinity) parser combinator library for Haxe.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "classPath": "src/",
-  "releasenote": "First release",
+  "releasenote": "Monad sugar syntax, general parser optimization",
   "contributors": ["deathbeam"],
-  "dependencies": {}
+  "dependencies": { "monax": "" }
 }
