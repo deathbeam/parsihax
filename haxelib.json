@@ -6,7 +6,7 @@
   "description": "A monadic LL(infinity) parser combinator library for Haxe.",
   "version": "0.1.2",
   "classPath": "src/",
-  "releasenote": "Method inlining, documentation",
+  "releasenote": "Method inlining, documentation, new combinators",
   "contributors": ["deathbeam"],
   "dependencies": { "monax": "" }
 }

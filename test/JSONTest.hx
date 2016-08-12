@@ -104,7 +104,7 @@ class JSONTest {
         nullLiteral,
         trueLiteral,
         falseLiteral
-      ].alt());
+      ].choice());
     }.lazy());
 
     return json.parse(text);

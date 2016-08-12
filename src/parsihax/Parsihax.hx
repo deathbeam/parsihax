@@ -16,7 +16,7 @@ typedef Mark<T> = {
   var value: T;
 }
 
-typedef Data<T> = {
+typedef Reply<T> = {
   @:optional var status : Bool;
   @:optional var index : Int;
   @:optional var value: T;
@@ -33,7 +33,7 @@ enum Result<T> {
   An atomic mutable reference to `Parser` used in recursive grammars.
 **/
 class Ref<A> extends Parser<A> {
-  public function new(action : String -> Int -> Data<A>) {
+  public function new(action : String -> Int -> Reply<A>) {
     super(action);
   }
 
@@ -44,7 +44,7 @@ class Ref<A> extends Parser<A> {
 }
 
 class Parser<A> {
-  public var action : String -> Int -> Data<A>;
+  public var action : String -> Int -> Reply<A>;
 
   /**
     The Parser object is a wrapper for a parser function.
@@ -54,7 +54,7 @@ class Parser<A> {
     construct your Parser from the base parsers and the
     parser combinator methods.
   **/
-  public function new(action : String -> Int -> Data<A>) {
+  public function new(action : String -> Int -> Reply<A>) {
     this.action = action;
   }
 }
@@ -229,7 +229,7 @@ class Parsihax {
     This is an alias for `Parser.succeed`. 
   **/
   inline public static function of<A>(value : A) : Parser<A> {
-    return succeed(value);
+    return value.succeed();
   }
 
   /**
@@ -239,7 +239,7 @@ class Parsihax {
     var numParsers = parsers.length;
 
     return new Parser(function(stream, i) {
-      var result : Data<A> = null;
+      var result : Reply<A> = null;
       var accum : Array<A> = [];
 
       for (parser in parsers) {
@@ -254,10 +254,10 @@ class Parsihax {
   }
 
   /**
-    Accepts any number of parsers, yielding the value of the first one that succeeds, backtracking in between.
+    Accepts array of parsers, yielding the value of the first one that succeeds, backtracking in between.
     This means that the order of parsers matters. If two parsers match the same prefix, the longer of the two must come first. 
   **/
-  public static function alt<A>(parsers : Array<Parser<A>>) : Parser<A> {
+  public static function choice<A>(parsers : Array<Parser<A>>) : Parser<A> {
     var numParsers = parsers.length;
     if (numParsers == 0) return fail('zero alternates');
 
@@ -277,7 +277,7 @@ class Parsihax {
     Accepts two parsers, and expects zero or more matches for content, separated by separator, yielding an array.
   **/
   inline public static function sepBy<A, B>(parser : Parser<A>, separator : Parser<B>) : Parser<Array<A>> {
-    return parser.sepBy1(separator).or(of([]));
+    return parser.sepBy1(separator).or([].of());
   }
 
   /**
@@ -286,7 +286,7 @@ class Parsihax {
   public static function sepBy1<A, B>(parser : Parser<A>, separator : Parser<B>) : Parser<Array<A>> {
     var pairs = separator.then(parser).many();
 
-    return parser.chain(function(r) {
+    return parser.bind(function(r) {
       return pairs.map(function(rs) {
         return [r].concat(rs);
       });
@@ -341,40 +341,6 @@ class Parsihax {
   }
 
   /**
-    You can add a primitive parser (similar to the included ones) by using this.
-  **/
-  public static function custom<A>(parsingFunction
-      : (Int -> A -> Data<A>)
-      -> (Int -> String -> Data<A>)
-      -> (String -> Int -> Data<A>)) : Parser<A> {
-    return new Parser(parsingFunction(makeSuccess, makeFailure));
-  }
-
-  /**
-    Obtain a human-readable error string.
-  **/
-  public static function formatError(stream : String, index : Index, expected : Array<String>) : String {
-    var sexpected = expected.length == 1
-      ? expected[0]
-      : 'one of ' + expected.join(', ');
-    
-    var got = '';
-    var i = index.offset;
-
-    if (i == stream.length) {
-      got = ', got the end of the stream';
-    } else {
-      var prefix = (i > 0 ? "'..." : "'");
-      var suffix = (stream.length - i > 12 ? "...'" : "'");
-
-      got = ' at line ' + index.line + ' column ' + index.column
-        +  ', got ' + prefix + stream.substring(i, i + 12) + suffix;
-    }
-
-    return 'expected ' + sexpected + got;
-  }
-
-  /**
     Calling .parse(string) on a parser parses the string and returns an `Result` which can be `Success` or `Failure`,
     indicating whether the parse succeeded. If it succeeded, the `Success` argument will contain the yielded value.
     Otherwise, the `Failure` attributes will contain the index of the parse error (with offset, line and column properties),
@@ -392,7 +358,7 @@ class Parsihax {
     Returns a new parser which tries `parser`, and if it fails uses `alternative`.
   **/
   public static function or<A>(parser: Parser<A>, alternative : Parser<A>) : Parser<A> {
-    return [parser, alternative].alt();
+    return [parser, alternative].choice();
   }
 
   /**
@@ -400,7 +366,7 @@ class Parsihax {
     of the parse, which is expected to return another parser, which will be tried next. This allows you to
     dynamically decide how to continue the parse, which is impossible with the other combinators.
   **/
-  public static function chain<A, B>(parser: Parser<A>, f : A -> Parser<B>) : Parser<B> {
+  public static function bind<A, B>(parser: Parser<A>, f : A -> Parser<B>) : Parser<B> {
     return new Parser(function(stream, i) {
       var result = parser.action(stream, i);
       if (!result.status) return cast(result);
@@ -413,7 +379,7 @@ class Parsihax {
     Expects `next` to follow `parser`, and yields the result of `next`.
   **/
   public static function then<A, B>(parser: Parser<A>, next : Parser<B>) : Parser<B> {
-    return parser.chain(function(result) return next);
+    return parser.bind(function(result) return next);
   }
 
   /**
@@ -438,7 +404,7 @@ class Parsihax {
     Expects `next` after `parser`, but yields the value of `parser`.
   **/
   public static function skip<A, B>(parser: Parser<A>, next : Parser<B>) : Parser<A> {
-    return parser.chain(function(result) return next.result(result));
+    return parser.bind(function(result) return next.result(result));
   };
 
   /**
@@ -460,6 +426,13 @@ class Parsihax {
         }
       }
     });
+  }
+
+  /**
+    Expects `parser` one or more times, and yields an array of the results.
+  **/
+  inline public static function many1<A>(parser: Parser<A>) : Parser<Array<A>> {
+    return parser.atLeast(1);
   }
 
   /**
@@ -514,13 +487,63 @@ class Parsihax {
   }
 
   /**
+    A parser for an operand followed by zero or more operands (`p`) separated by right-associative operators (`op`).
+  **/
+  inline public static function chainr<A>(p : Parser<A>, op : Parser<A->A->A>) : Parser<A> {
+    return chainr1(p, op).or(p);
+  }
+
+  /**
+    A parser for an operand followed by one or more operands (`p`) separated by right-associative operators (`op`).
+  **/
+  public static function chainr1<A>(p : Parser<A>, op : Parser<A->A->A>) : Parser<A> {
+    return scanr1(p, op);
+  }
+
+  private static function scanr1<A>(p : Parser<A>, op : Parser<A->A->A>) : Parser<A> {
+    return bind(p, function(x) return restr1(p, op, x));
+  }
+
+  private static function restr1<A>(p : Parser<A>, op : Parser<A->A->A>, x : A) : Parser<A> {
+    return bind(op, function(f) {
+      return bind(scanr1(p, op), function(y) {
+        return f(x, y).of();
+      });
+    }).or(x.of());
+  }
+
+  /**
+    A parser for an operand followed by zero or more operands (`p`) separated by operators (`op`).
+    This parser can for example be used to eliminate left recursion which typically occurs in expression grammars.
+  **/
+  public static function chainl<A>(p : Parser<A>, op : Parser<A->A->A>) : Parser<A> {
+    return chainl(p, op).or(p);
+  }
+
+  /**
+    A parser for an operand followed by one or more operands (`p`) separated by operators (`op`).
+    This parser can for example be used to eliminate left recursion which typically occurs in expression grammars.
+  **/
+  public static function chainl1<A>(p : Parser<A>, op : Parser<A->A->A>) : Parser<A> {
+    return bind(p, function(x) return restl1(p, op, x));
+  }
+
+  private static function restl1<A>(p : Parser<A>, op : Parser<A->A->A>, x : A) : Parser<A> {
+    return bind(op, function(f) {
+      return bind(p, function(y) {
+        return restl1(p, op, f(x, y));
+      });
+    }).or(x.of());
+  }
+
+  /**
     Yields an object with start, value, and end keys, where value is the original value yielded by the `parser`,
     and start and end are are objects with a 0-based offset and 1-based line and column properties that represent
     the position in the stream that contained the parsed text.
   **/
   public static function mark<A>(parser: Parser<A>) : Parser<Mark<A>> {
-    return index().chain(function(start) {
-      return parser.chain(function(value) {
+    return index().bind(function(start) {
+      return parser.bind(function(value) {
         return index().map(function(end) {
           return {
             start: start,
@@ -554,13 +577,47 @@ class Parsihax {
   /**
     Makes `parser` optional, and returns `None` in the case that
     the parser does not accept the current input. Otherwise, if
-    `parser` would have parsed and returned an `A`, `parser.maybe()` will
+    `parser` would have parsed and returned an `A`, option` will
     parse and return a `Some(A)`.
   **/
-  public static function maybe<A>(parser: Parser<A>) : Parser<Option<A>> {
+  public static function option<A>(parser: Parser<A>) : Parser<Option<A>> {
     return parser.map(function(r) {
       return Some(r);
     }).or(of(None));
+  }
+
+  /**
+    You can add a primitive parser (similar to the included ones) by using this.
+  **/
+  public static function custom<A>(parsingFunction
+      : (Int -> A -> Reply<A>)
+      -> (Int -> String -> Reply<A>)
+      -> (String -> Int -> Reply<A>)) : Parser<A> {
+    return new Parser(parsingFunction(makeSuccess, makeFailure));
+  }
+
+  /**
+    Obtain a human-readable error string.
+  **/
+  public static function formatError(stream : String, index : Index, expected : Array<String>) : String {
+    var sexpected = expected.length == 1
+      ? expected[0]
+      : 'one of ' + expected.join(', ');
+    
+    var got = '';
+    var i = index.offset;
+
+    if (i == stream.length) {
+      got = ', got the end of the stream';
+    } else {
+      var prefix = (i > 0 ? "'..." : "'");
+      var suffix = (stream.length - i > 12 ? "...'" : "'");
+
+      got = ' at line ' + index.line + ' column ' + index.column
+        +  ', got ' + prefix + stream.substring(i, i + 12) + suffix;
+    }
+
+    return 'expected ' + sexpected + got;
   }
 
   /**
@@ -584,10 +641,10 @@ class Parsihax {
     This is an alias for `Parsihax.chain`. 
   **/
   inline public static function flatMap<T,U>(p1 : Parser<T> , fp2 : T -> Parser<U>) : Parser<U> {
-    return p1.chain(fp2);
+    return p1.bind(fp2);
   }
 
-  inline private static function makeSuccess<A>(index : Int, value : A) : Data<A> {
+  inline private static function makeSuccess<A>(index : Int, value : A) : Reply<A> {
     return {
       status: true,
       index: index,
@@ -597,7 +654,7 @@ class Parsihax {
     };
   }
 
-  inline private static function makeFailure<A>(index : Int, expected : String) : Data<A> {
+  inline private static function makeFailure<A>(index : Int, expected : String) : Reply<A> {
     return {
       status: false,
       index: -1,
@@ -619,7 +676,7 @@ class Parsihax {
     };
   };
 
-  private static function mergeReplies<A, B>(result : Data<A>, ?last : Data<B>) : Data<A> {
+  private static function mergeReplies<A, B>(result : Reply<A>, ?last : Reply<B>) : Reply<A> {
     if (last == null) return result;
     if (result.furthest > last.furthest) return result;
 

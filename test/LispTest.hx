@@ -46,7 +46,7 @@ class LispTest {
         LSymbol,
         LNumber,
         LList
-      ].alt();
+      ].choice();
     }.lazy());
 
     // Let's remember to throw away whitespace at the top level of the parser.
