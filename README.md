@@ -1,15 +1,15 @@
+# Parsihax
 [![TravisCI Build Status](https://api.travis-ci.org/deathbeam/parsihax.svg?branch=master)](https://travis-ci.org/deathbeam/parsihax)
 
-# Parsihax
-Parsihax is a small library for writing big parsers made up of lots of little parsers. The API is inspired by [parsec][] and [Promises/A+][promises-aplus].
+`Parsihax` is a small library for writing big parsers made up of lots of little parsers. The API is inspired by [parsec][] and [Promises/A+][promises-aplus].
 Originally, it started by rewriting [Parsimmon][parsimmon] to Haxe.
 
 ## Examples
-See the [test][] directory for annotated examples of parsing JSON, Lisp, and simple programming language.
+See the [test][] directory for annotated examples of parsing JSON and simple Lisp-like structure.
 
 ## Basics
 
-A Parsihax parser is an object that represents an action on a stream of text, and the promise of either an object yielded by that action on success or a message in case of failure. For example, `Parser.string('foo')` yields the string `'foo'` if the beginning of the stream is `'foo'`, and otherwise fails. To use nice sugar syntax, simply add this to your Haxe file
+A `Parsihax` parser is an object that represents an action on a stream of text, and the promise of either an object yielded by that action on success or a message in case of failure. For example, `Parser.string('foo')` yields the string `'foo'` if the beginning of the stream is `'foo'`, and otherwise fails. To use nice sugar syntax, simply add this to your Haxe file
 
 ```haxe
 import parsihax.Parser.*;
