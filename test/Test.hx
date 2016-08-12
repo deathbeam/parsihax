@@ -35,15 +35,15 @@ class Test {
   }
 
   private static function printAndParse<T>(name : String, input : String, output : Result<T>) {
-    Sys.println('-----------------------------------');
-    Sys.println('Parser input ($name)');
-    Sys.println('-----------------------------------');
-    Sys.println('    $input');
-    Sys.println('-----------------------------------');
-    Sys.println('Parser output ($name)');
-    Sys.println('-----------------------------------');
+    trace('-----------------------------------');
+    trace('Parser input ($name)');
+    trace('-----------------------------------');
+    trace('$input');
+    trace('-----------------------------------');
+    trace('Parser output ($name)');
+    trace('-----------------------------------');
     
-    Sys.println(switch(output) {
+    trace(switch(output) {
       case Success(value):
         value;
       case Failure(index, expected):
