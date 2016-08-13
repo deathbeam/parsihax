@@ -14,7 +14,7 @@ typedef Mark<T> = {
   var value: T;
 }
 
-typedef Reply<T> = {
+typedef Result<T> = {
   @:optional var status : Bool;
   @:optional var index : Int;
   @:optional var value: T;
@@ -22,27 +22,8 @@ typedef Reply<T> = {
   @:optional var expected : Array<String>;
 };
 
-enum Result<T> {
-  Success(value : T);
-  Failure(index : Index, expected : Array<String>);
-}
-
-/**
-  An atomic mutable reference to `Parser` used in recursive grammars.
-**/
-class Ref<A> extends Parser<A> {
-  public function new(action : String -> Int -> Reply<A>) {
-    super(action);
-  }
-
-  public function set(parser : Parser<A>) : Ref<A> {
-    this.action = parser.action;
-    return this;
-  }
-}
-
 class Parser<A> {
-  public var action : String -> Int -> Reply<A>;
+  private var action : String -> Int -> Result<A>;
 
   /**
     The Parser object is a wrapper for a parser function.
@@ -52,8 +33,23 @@ class Parser<A> {
     construct your Parser from the base parsers and the
     parser combinator methods.
   **/
-  public function new(action : String -> Int -> Reply<A>) {
+  public function new(action : String -> Int -> Result<A>) {
     this.action = action;
+  }
+
+  /**
+    Apply input to parsing function and receive result
+  **/
+  public function apply(stream : String, offset : Int = 0) : Result<A> {
+    return action(stream, offset);
+  }
+
+  /**
+    Usefull in changing parser behaviour, for example when declaring just empty parser first
+  **/
+  public function set(parser : Parser<A>) : Parser<A> {
+    this.action = parser.action;
+    return this;
   }
 }
 
@@ -147,14 +143,6 @@ class Parsihax {
   }
 
   /**
-    Create parser reference, usefull for recursive parsers. If parsing is tried on this reference
-    directly, without concating it, it returns failed parser.
-  **/
-  public static function ref<A>() : Ref<A> {
-    return new Ref(fail('actual parser, and not reference').action);
-  }
-
-  /**
     Returns a parser that looks for string and yields that exact value.
   **/
   public static function string(str : String) : Parser<String> {
@@ -245,11 +233,11 @@ class Parsihax {
     var numParsers = parsers.length;
 
     return new Parser(function(stream, i) {
-      var result : Reply<A> = null;
+      var result : Result<A> = null;
       var accum : Array<A> = [];
 
       for (parser in parsers) {
-        result = mergeReplies(parser.action(stream, i), result);
+        result = mergeReplies(parser.apply(stream, i), result);
         if (!result.status) return cast(result);
         accum.push(result.value);
         i = result.index;
@@ -271,7 +259,7 @@ class Parsihax {
       var result = null;
 
       for (parser in parsers) {
-        result = mergeReplies(parser.action(stream, i), result);
+        result = mergeReplies(parser.apply(stream, i), result);
         if (result.status) return result;
       }
 
@@ -307,8 +295,8 @@ class Parsihax {
     var parser : Parser<A> = null;
     
     parser = new Parser(function(stream, i) {
-      parser.action = f().action;
-      return parser.action(stream, i);
+      parser.set(f());
+      return parser.apply(stream, i);
     });
 
     if (desc != null) parser = parser.desc(desc);
@@ -347,20 +335,6 @@ class Parsihax {
   }
 
   /**
-    Calling .parse(string) on a parser parses the string and returns an `Result` which can be `Success` or `Failure`,
-    indicating whether the parse succeeded. If it succeeded, the `Success` argument will contain the yielded value.
-    Otherwise, the `Failure` attributes will contain the index of the parse error (with offset, line and column properties),
-    and a sorted, unique array of messages indicating what was expected.
-  **/
-  public static function parse<A>(parser: Parser<A>, stream : String) : Result<A> {
-    var result = parser.skip(eof()).action(stream, 0);
-
-    return result.status
-      ? Success(result.value)
-      : Failure(makeIndex(stream, result.furthest), result.expected);
-  }
-
-  /**
     Returns a new parser which tries `parser`, and if it fails uses `alternative`.
   **/
   public static function or<A>(parser: Parser<A>, alternative : Parser<A>) : Parser<A> {
@@ -374,10 +348,10 @@ class Parsihax {
   **/
   public static function bind<A, B>(parser: Parser<A>, f : A -> Parser<B>) : Parser<B> {
     return new Parser(function(stream, i) {
-      var result = parser.action(stream, i);
+      var result = parser.apply(stream, i);
       if (!result.status) return cast(result);
       var nextParser = f(result.value);
-      return mergeReplies(nextParser.action(stream, result.index), result);
+      return mergeReplies(nextParser.apply(stream, result.index), result);
     });
   }
 
@@ -393,7 +367,7 @@ class Parsihax {
   **/
   public static function map<A, B>(parser: Parser<A>, f : A -> B) : Parser<B> {
     return new Parser(function(stream, i) {
-      var result = parser.action(stream, i);
+      var result = parser.apply(stream, i);
       if (!result.status) return cast(result);
       return mergeReplies(makeSuccess(result.index, f(result.value)), result);
     });
@@ -422,7 +396,7 @@ class Parsihax {
       var result = null;
 
       while (true) {
-        result = mergeReplies(parser.action(stream, i), result);
+        result = mergeReplies(parser.apply(stream, i), result);
 
         if (result.status) {
           i = result.index;
@@ -455,7 +429,7 @@ class Parsihax {
       var prevResult = null;
 
       for (times in 0...min) {
-        result = parser.action(stream, i);
+        result = parser.apply(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -464,7 +438,7 @@ class Parsihax {
       }
 
       for (times in 0...max) {
-        result = parser.action(stream, i);
+        result = parser.apply(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -567,7 +541,7 @@ class Parsihax {
   **/
   public static function desc<A>(parser: Parser<A>, expected : String) : Parser<A> {
     return new Parser(function(stream, i) {
-      var reply = parser.action(stream, i);
+      var reply = parser.apply(stream, i);
       if (!reply.status) reply.expected = [expected];
       return reply;
     });
@@ -596,20 +570,21 @@ class Parsihax {
     You can add a primitive parser (similar to the included ones) by using this.
   **/
   public static function custom<A>(parsingFunction
-      : (Int -> A -> Reply<A>)
-      -> (Int -> String -> Reply<A>)
-      -> (String -> Int -> Reply<A>)) : Parser<A> {
+      : (Int -> A -> Result<A>)
+      -> (Int -> String -> Result<A>)
+      -> (String -> Int -> Result<A>)) : Parser<A> {
     return new Parser(parsingFunction(makeSuccess, makeFailure));
   }
 
   /**
     Obtain a human-readable error string.
   **/
-  public static function formatError(stream : String, index : Index, expected : Array<String>) : String {
-    var sexpected = expected.length == 1
-      ? expected[0]
-      : 'one of ' + expected.join(', ');
+  public static function formatError<T>(result : Result<T>, stream : String) : String {
+    var sexpected = result.expected.length == 1
+      ? result.expected[0]
+      : 'one of ' + result.expected.join(', ');
     
+    var index = makeIndex(stream, result.furthest);
     var got = '';
     var i = index.offset;
 
@@ -650,7 +625,7 @@ class Parsihax {
     return p1.bind(fp2);
   }
 
-  inline private static function makeSuccess<A>(index : Int, value : A) : Reply<A> {
+  inline private static function makeSuccess<A>(index : Int, value : A) : Result<A> {
     return {
       status: true,
       index: index,
@@ -660,7 +635,7 @@ class Parsihax {
     };
   }
 
-  inline private static function makeFailure<A>(index : Int, expected : String) : Reply<A> {
+  inline private static function makeFailure<A>(index : Int, expected : String) : Result<A> {
     return {
       status: false,
       index: -1,
@@ -682,7 +657,7 @@ class Parsihax {
     };
   };
 
-  private static function mergeReplies<A, B>(result : Reply<A>, ?last : Reply<B>) : Reply<A> {
+  private static function mergeReplies<A, B>(result : Result<A>, ?last : Result<B>) : Result<A> {
     if (last == null) return result;
     if (result.furthest > last.furthest) return result;
 

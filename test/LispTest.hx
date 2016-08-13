@@ -14,9 +14,9 @@ class LispTest {
       return optWhitespace().then(parser).skip(optWhitespace());
     }
 
-    // We need to use `P.ref` here because the other parsers don't exist yet. We
+    // We need to use `empty` here because the other parsers don't exist yet. We
     // can't just declare this later though, because `LList` references this parser!
-    var LExpression = ref();
+    var LExpression = empty();
 
     // The basic parsers (usually the ones described via regexp) should have a
     // description for error message purposes.
@@ -39,17 +39,15 @@ class LispTest {
       .skip(')'.string())
       .map(function(r) return LispList(r));
 
-    LExpression.set(function() {
-      return [
+    LExpression.set([
         LSymbol,
         LNumber,
         LList
-      ].choice();
-    }.lazy());
+      ].choice());
 
     // Let's remember to throw away whitespace at the top level of the parser.
     var lisp = spaced(LExpression);
 
-    return lisp.parse(text);
+    return lisp.apply(text);
   }
 }

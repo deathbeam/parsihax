@@ -44,12 +44,10 @@ class Test {
     trace('-----------------------------------');
     trace('Parser output ($name)');
     trace('-----------------------------------');
-    
-    trace(switch(output) {
-      case Success(value):
-        Std.string(value);
-      case Failure(index, expected):
-        formatError(input, index, expected);
-    });
+
+    trace(output.status
+      ? Std.string(output.value)
+      : formatError(output, input)
+    );
   }
 }
