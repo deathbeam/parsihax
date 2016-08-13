@@ -26,8 +26,8 @@
 -python bin/parsihax.py
 
 # Lua is not working correctly on Travis
-# --next
-# -lua bin/parsihax.lua
+--next
+-lua bin/parsihax.lua
 
 --next
 -as3 bin/as3

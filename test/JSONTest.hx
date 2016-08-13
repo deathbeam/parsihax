@@ -102,6 +102,6 @@ class JSONTest {
     .map(function(pairs) return JSONObject(pairs));
 
   public static function build() {
-    return json;
+    return json.parse;
   }
 }

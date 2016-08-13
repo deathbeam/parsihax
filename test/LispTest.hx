@@ -47,6 +47,6 @@ class LispTest {
 
     // Let's remember to throw away whitespace at the top level of the parser.
     var lisp = spaced(LExpression);
-    return lisp;
+    return lisp.parse;
   }
 }

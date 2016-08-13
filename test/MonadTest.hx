@@ -8,6 +8,6 @@ class MonadTest {
       b <= "b".string();
       c <= "c".string();
       ret([a,b,c]);
-    });
+    }).parse;
   }
 }
