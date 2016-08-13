@@ -101,7 +101,7 @@ class JSONTest {
     lbrace.then(commaSep(pair)).skip(rbrace)
     .map(function(pairs) return JSONObject(pairs));
 
-  public static function parse(text : String) {
-    return json.apply(text);
+  public static function build() {
+    return json.get();
   }
 }

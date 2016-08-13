@@ -8,15 +8,15 @@ enum LispExpression {
 }
 
 class LispTest {
-  public static function parse(text : String) {
+  public static function build() {
+    // We need to use `empty` here because the other parsers don't exist yet. We
+    // can't just declare this later though, because `LList` references this parser!
+    var LExpression = empty();
+    
     // A little helper to wrap a parser with optional whitespace.
     function spaced(parser) {
       return optWhitespace().then(parser).skip(optWhitespace());
     }
-
-    // We need to use `empty` here because the other parsers don't exist yet. We
-    // can't just declare this later though, because `LList` references this parser!
-    var LExpression = empty();
 
     // The basic parsers (usually the ones described via regexp) should have a
     // description for error message purposes.
@@ -40,14 +40,13 @@ class LispTest {
       .map(function(r) return LispList(r));
 
     LExpression.set([
-        LSymbol,
-        LNumber,
-        LList
-      ].choice());
+      LSymbol,
+      LNumber,
+      LList
+    ].choice());
 
     // Let's remember to throw away whitespace at the top level of the parser.
     var lisp = spaced(LExpression);
-
-    return lisp.apply(text);
+    return lisp.get();
   }
 }
