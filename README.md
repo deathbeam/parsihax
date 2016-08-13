@@ -44,12 +44,18 @@ monad({
 
 will yield `[ 'a', 'b', 'c']` when it encounters the string `'abc'`.
 
-Calling `get` on a parser (or explicitly casting it to `Parsihax.Action` returns parsing function `String -> ?Int -> Result<A>` (or just `Action`), that parses the string and returns an object with a boolean `status` flag, indicating whether the parse succeeded. If it succeeded, the `value` attribute will contain the yielded value. Otherwise, the `index` and `expected` attributes will contain the offset of the parse error, and a sorted, unique array of messages indicating what was expected.
+Getting `parse` from a parser (or explicitly casting it to `Parsihax.parse` returns parsing function
+`String -> ?Int -> Result<A>` (or just `Action`), that parses the string and returns an object with a boolean
+`status` flag, indicating whether the parse succeeded. If it succeeded, the `value` attribute will contain the
+yielded value. Otherwise, the `index` and `expected` attributes will contain the offset of the parse error, and
+a sorted, unique array of messages indicating what was expected.
 
-The error object can be passed along with the original source to `Parsihax.formatError(error, source)` to obtain a human-readable error string.
+The error object can be passed along with the original source to `Parsihax.formatError(error, source)` to obtain
+a human-readable error string.
+
+Changing `parse` value changes parser behaviour, but still keeps it's reference, what is really usefull in recursive parsers.
 
 [test]: https://github.com/deathbeam/parsihax/tree/master/test
-
 [monax]: https://github.com/sledorze/monax
 [promises-aplus]: https://promisesaplus.com/
 [parsec]: https://hackage.haskell.org/package/parsec

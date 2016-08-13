@@ -22,39 +22,39 @@ typedef Result<T> = {
   @:optional var expected : Array<String>;
 };
 
-typedef Action<A> = String -> ?Int -> Result<A>;
+typedef Function<A> = String -> ?Int -> Result<A>;
 
 /**
   The Parser object is a wrapper for a parser function.
   Externally, you use one to parse a string by calling
-    var result = SomeParser.apply('Me Me Me! Parse Me!');
-  You should never need to call the constructor, rather you should
-  construct your Parser from the base parsers and the
-  parser combinator methods.
+    var result = SomeParser.parse('Me Me Me! Parse Me!');
 **/
-abstract Parser<A>(haxe.ds.Vector<Action<A>>) {
-  public inline function new(action : Action<A>) {
-    this = new haxe.ds.Vector(1);
-    this[0] = action;
-  }
+abstract Parser<T>(haxe.ds.Vector<Function<T>>) {
+  inline function new() this = new haxe.ds.Vector(1);
+  @:to inline function get_parse() : Function<T> return this[0];
+  inline function set_parse(param : Function<T>) return this[0] = param;
 
   /**
-    Calling `get` on a parser (or explicitly casting it to `Parsihax.Action` returns parsing function
-    `String -> ?Int -> Result<A>` (or just `Action`), that parses the string and returns an object with a boolean
+    Getting `parse` from a parser (or explicitly casting it to `Parsihax.Function` returns parsing function
+    `String -> ?Int -> Result<A>` (or just `Function`), that parses the string and returns an object with a boolean
     `status` flag, indicating whether the parse succeeded. If it succeeded, the `value` attribute will contain the
     yielded value. Otherwise, the `index` and `expected` attributes will contain the offset of the parse error, and
     a sorted, unique array of messages indicating what was expected.
 
     The error object can be passed along with the original source to `Parsihax.formatError(error, source)` to obtain
     a human-readable error string.
+
+    Changing `parse` value changes parser behaviour, but still keeps it's reference, what is really usefull in recursive parsers.
   **/
-  @:to public inline function get() : Action<A> return this[0];
+  public var parse(get, set): Function<T>;
 
   /**
-    Changes parser behaviour, but still keeps it's reference. Very usefull in recursive parsers.
+    Creates `Parser` from `Function`
   **/
-  public inline function set(parser : Action<A>) {
-    this[0] = parser;
+  @:noUsing @:from static inline public function to<T>(v: Function<T>): Parser<T> {
+    var ret = new Parser();
+    ret.parse = v;
+    return ret;
   }
 }
 
@@ -110,31 +110,31 @@ class Parsihax {
     A parser that consumes and yields the next character of the stream.
   **/
   public static function any() : Parser<String> {
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       return i >= stream.length
         ? makeFailure(i, 'any character')
         : makeSuccess(i+1, stream.charAt(i));
-    });
+    };
   }
 
   /**
     A parser that consumes and yields the entire remainder of the stream.
   **/
   public static function all() : Parser<String> {
-    return new Parser(function(stream, i = 0) {
+    return function(stream : String, i = 0) {
       return makeSuccess(stream.length, stream.substring(i));
-    });
+    };
   }
 
   /**
     A parser that expects to be at the end of the stream (zero characters left).
   **/
   public static function eof<A>() : Parser<A> {
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       return i < stream.length
         ? makeFailure(i, 'EOF')
         : makeSuccess(i, null);
-    });
+    };
   }
 
   /**
@@ -142,9 +142,9 @@ class Parsihax {
     it has a 0-based character offset property and 1-based line and column properties.
   **/
   public static function index() : Parser<Index> {
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       return makeSuccess(i, makeIndex(stream, i));
-    });
+    };
   }
 
   /**
@@ -154,7 +154,7 @@ class Parsihax {
     var len = str.length;
     var expected = "'"+str+"'";
 
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       var head = stream.substring(i, i + len);
 
       if (head == str) {
@@ -162,7 +162,7 @@ class Parsihax {
       } else {
         return makeFailure(i, expected);
       }
-    });
+    };
   }
 
   /**
@@ -195,7 +195,7 @@ class Parsihax {
   public static function regexp(re : EReg, group : Int = 0) : Parser<String> {
     var expected = Std.string(re);
     
-    return new Parser(function(stream, i = 0) {
+    return function(stream : String, i = 0) {
       var match = re.match(stream.substring(i));
 
       if (match) {
@@ -207,7 +207,7 @@ class Parsihax {
       }
 
       return makeFailure(i, expected);
-    });
+    };
   }
 
   /**
@@ -221,7 +221,7 @@ class Parsihax {
     Returns a parser that doesn't consume any of the string, and yields result. 
   **/
   public static function succeed<A>(value : A) : Parser<A> {
-    return new Parser(function(stream, i = 0) return makeSuccess(i, value));
+    return function(stream, i = 0) return makeSuccess(i, value);
   }
 
   /**
@@ -237,19 +237,19 @@ class Parsihax {
   public static function seq<A>(parsers : Array<Parser<A>>) : Parser<Array<A>> {
     if (parsers.length == 0) return fail('sequence of parsers');
 
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       var result : Result<A> = null;
       var accum : Array<A> = [];
 
       for (parser in parsers) {
-        result = mergeReplies(parser.get()(stream, i), result);
+        result = mergeReplies(parser.parse(stream, i), result);
         if (!result.status) return cast(result);
         accum.push(result.value);
         i = result.index;
       }
 
       return mergeReplies(makeSuccess(i, accum), result);
-    });
+    };
   }
 
   /**
@@ -259,16 +259,16 @@ class Parsihax {
   public static function choice<A>(parsers : Array<Parser<A>>) : Parser<A> {
     if (parsers.length == 0) return fail('at least one choice');
 
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       var result = null;
 
       for (parser in parsers) {
-        result = mergeReplies(parser.get()(stream, i), result);
+        result = mergeReplies(parser.parse(stream, i), result);
         if (result.status) return result;
       }
 
       return result;
-    });
+    };
   }
 
   /**
@@ -297,10 +297,10 @@ class Parsihax {
   **/
   public static function lazy<A>(f : Void -> Parser<A>, ?desc : String) : Parser<A> {
     var parser : Parser<A> = null;
-    parser = new Parser(function(stream, i = 0) {
-      parser.set(f());
-      return parser.get()(stream, i);
-    });
+    parser = function(stream, i = 0) {
+      parser.parse = f();
+      return parser.parse(stream, i);
+    };
 
     if (desc != null) parser = parser.desc(desc);
     return parser;
@@ -310,31 +310,31 @@ class Parsihax {
     Returns a failing parser with the given message.
   **/
   public static function fail<A>(expected : String) : Parser<A> {
-    return new Parser(function(stream, i = 0) return makeFailure(i, expected));
+    return function(stream, i = 0) return makeFailure(i, expected);
   }
 
   /**
     Returns a parser that yield a single character if it passes the predicate function.
   **/
   public static function test(predicate : String -> Bool) : Parser<String> {
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       var char = stream.charAt(i);
 
       return i < stream.length && predicate(char)
         ? makeSuccess(i+1, char)
         : makeFailure(i, 'a character matching ' + predicate);
-    });
+    };
   }
 
   /**
     Returns a parser yield a string containing all the next characters that pass the predicate.
   **/
   public static function takeWhile(predicate : String -> Bool) : Parser<String> {
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       var j = i;
       while (j < stream.length && predicate(stream.charAt(j))) j += 1;
       return makeSuccess(j, stream.substring(i, j));
-    });
+    };
   }
 
   /**
@@ -350,12 +350,12 @@ class Parsihax {
     dynamically decide how to continue the parse, which is impossible with the other combinators.
   **/
   public static function bind<A, B>(parser: Parser<A>, f : A -> Parser<B>) : Parser<B> {
-    return new Parser(function(stream, i = 0) {
-      var result = parser.get()(stream, i);
+    return function(stream, i = 0) {
+      var result = parser.parse(stream, i);
       if (!result.status) return cast(result);
       var nextParser = f(result.value);
-      return mergeReplies(nextParser.get()(stream, result.index), result);
-    });
+      return mergeReplies(nextParser.parse(stream, result.index), result);
+    };
   }
 
   /**
@@ -369,11 +369,11 @@ class Parsihax {
     Transforms the output of `parser` with the given function `f`.
   **/
   public static function map<A, B>(parser: Parser<A>, f : A -> B) : Parser<B> {
-    return new Parser(function(stream, i = 0) {
-      var result = parser.get()(stream, i);
+    return function(stream, i = 0) {
+      var result = parser.parse(stream, i);
       if (!result.status) return cast(result);
       return mergeReplies(makeSuccess(result.index, f(result.value)), result);
-    });
+    };
   }
 
   /**
@@ -394,12 +394,12 @@ class Parsihax {
     Expects `parser` zero or more times, and yields an array of the results.
   **/
   public static function many<A>(parser: Parser<A>) : Parser<Array<A>> {
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       var accum : Array<A> = [];
       var result = null;
 
       while (true) {
-        result = mergeReplies(parser.get()(stream, i), result);
+        result = mergeReplies(parser.parse(stream, i), result);
 
         if (result.status) {
           i = result.index;
@@ -408,7 +408,7 @@ class Parsihax {
           return mergeReplies(makeSuccess(i, accum), result);
         }
       }
-    });
+    };
   }
 
   /**
@@ -425,14 +425,14 @@ class Parsihax {
   public static function times<A>(parser: Parser<A>, min : Int, ?max : Int) : Parser<Array<A>> {
     if (max == null) max = min;
 
-    return new Parser(function(stream, i = 0) {
+    return function(stream, i = 0) {
       var accum = [];
       var start = i;
       var result = null;
       var prevResult = null;
 
       for (times in 0...min) {
-        result = parser.get()(stream, i);
+        result = parser.parse(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -441,7 +441,7 @@ class Parsihax {
       }
 
       for (times in 0...max) {
-        result = parser.get()(stream, i);
+        result = parser.parse(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -450,7 +450,7 @@ class Parsihax {
       }
 
       return mergeReplies(makeSuccess(i, accum), prevResult);
-    });
+    };
   }
 
   /**
@@ -543,11 +543,11 @@ class Parsihax {
     will indicate that 'the letter x' was expected.
   **/
   public static function desc<A>(parser: Parser<A>, expected : String) : Parser<A> {
-    return new Parser(function(stream, i = 0) {
-      var reply = parser.get()(stream, i);
+    return function(stream, i = 0) {
+      var reply = parser.parse(stream, i);
       if (!reply.status) reply.expected = [expected];
       return reply;
-    });
+    };
   }
 
   /**
@@ -575,8 +575,8 @@ class Parsihax {
   public static function custom<A>(parsingFunction
       : (Int -> A -> Result<A>)
       -> (Int -> String -> Result<A>)
-      -> (Action<A>)) : Parser<A> {
-    return new Parser(parsingFunction(makeSuccess, makeFailure));
+      -> (Function<A>)) : Parser<A> {
+    return parsingFunction(makeSuccess, makeFailure);
   }
 
   /**

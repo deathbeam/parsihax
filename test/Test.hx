@@ -1,4 +1,4 @@
-import Parsihax.Action;
+import Parsihax.Function;
 import Parsihax.formatError;
 
 class Test {
@@ -36,7 +36,7 @@ class Test {
     printAndParse('Monad', monad, MonadTest.build());
   }
 
-  private static function printAndParse<T>(name : String, input : String, action : Action<T>) {
+  private static function printAndParse<T>(name : String, input : String, parse : Function<T>) {
     trace('-----------------------------------');
     trace('Parser input ($name)');
     trace('-----------------------------------');
@@ -45,7 +45,7 @@ class Test {
     trace('Parser output ($name)');
     trace('-----------------------------------');
 
-    var output = action(input);
+    var output = parse(input);
 
     trace(output.status
       ? Std.string(output.value)

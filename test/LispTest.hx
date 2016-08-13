@@ -39,14 +39,14 @@ class LispTest {
       .skip(')'.string())
       .map(function(r) return LispList(r));
 
-    LExpression.set([
+    LExpression.parse = [
       LSymbol,
       LNumber,
       LList
-    ].choice());
+    ].choice();
 
     // Let's remember to throw away whitespace at the top level of the parser.
     var lisp = spaced(LExpression);
-    return lisp.get();
+    return lisp;
   }
 }
