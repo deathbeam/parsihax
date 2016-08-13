@@ -295,15 +295,12 @@ class Parsihax {
     Accepts a function that returns a parser, which is evaluated the first time the parser is used.
     This is useful for referencing parsers that haven't yet been defined, and for implementing recursive parsers.
   **/
-  public static function lazy<A>(f : Void -> Parser<A>, ?desc : String) : Parser<A> {
+  public static function lazy<A>(f : Void -> Parser<A>) : Parser<A> {
     var parser : Parser<A> = null;
-    parser = function(stream, i = 0) {
-      parser.parse = f();
-      return parser.parse(stream, i);
+    
+    return parser = function(stream, i = 0) {
+      return (parser.parse = f().parse)(stream, i);
     };
-
-    if (desc != null) parser = parser.desc(desc);
-    return parser;
   }
 
   /**
