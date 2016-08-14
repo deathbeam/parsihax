@@ -1,3 +1,6 @@
+import haxe.ds.Option;
+import haxe.ds.Vector;
+import com.mindrocks.monads.Monad;
 using Parsihax;
 
 /**
@@ -27,7 +30,7 @@ typedef Mark<T> = {
   what was expected.
 
   The error structure can be passed along with the original source to
-  `Parsihax.formatError(error, source)` to obtain a human-readable error string.
+  `Parsihax.formatError` to obtain a human-readable error string.
 **/
 typedef Result<T> = {
   @:optional var status : Bool;
@@ -45,19 +48,19 @@ typedef Function<A> = String -> ?Int -> Result<A>;
 /**
   The Parser object is a wrapper for a parser function.
   Externally, you use one to parse a string by calling
-    var result = SomeParser.parse('Me Me Me! Parse Me!');
+    `var result = SomeParser.parse('Me Me Me! Parse Me!');`
 **/
-abstract Parser<T>(haxe.ds.Vector<Function<T>>) {
-  inline function new() this = new haxe.ds.Vector(1);
+abstract Parser<T>(Vector<Function<T>>) {
+  inline function new() this = new Vector(1);
   @:to inline function get_parse() : Function<T> return this[0];
   inline function set_parse(param : Function<T>) return this[0] = param;
 
   /**
-    Getting `parse` from a parser (or explicitly casting it to
-    `Parsihax.Function` returns parsing function `String -> ?Int -> Result<A>`
+    Getting `Parser.parse` from a parser (or explicitly casting it to
+    `Function` returns parsing function `String -> ?Int -> Result<A>`
     (or just `Function`), that parses the string and returns `Result<A>`.
 
-    Changing `parse` value changes parser behaviour, but still keeps it's
+    Changing `Parser.parse` value changes parser behaviour, but still keeps it's
     reference, what is really usefull in recursive parsers.
   **/
   public var parse(get, set): Function<T>;
@@ -74,54 +77,54 @@ abstract Parser<T>(haxe.ds.Vector<Function<T>>) {
 
 /**
   Defines grammar and encapsulates parsing logic. A `Parser` takes as input a
-  `String` source and parses it when the `parse` method is called.
-  An enum `Result` is returned, which can be `Success` or `Failure`
+  `String` source and parses it when the `Parser.parse` method is called.
+  A structure `Result` is returned.
 **/
 class Parsihax {
   /**
-    Equivalent to regexp [a-z] /i
+    Equivalent to `Parsihax.regexp(~/[a-z]/i)`
   **/
   inline public static function letter() : Parser<String> {
     return ~/[a-z]/i.regexp().desc('a letter');
   }
 
   /**
-    Equivalent to regexp [a-z]* /i
+    Equivalent to `Parsihax.regexp(~/[a-z]* /i)`
   **/
   inline public static function letters() : Parser<String> {
     return ~/[a-z]*/i.regexp();
   }
 
   /**
-    Equivalent to regex [0-9]
+    Equivalent to `Parsihax.regexp(~/[0-9]/)`
   **/
   inline public static function digit() : Parser<String> {
     return ~/[0-9]/.regexp().desc('a digit');
   }
 
   /**
-    Equivalent to regexp [0-9]*
+    Equivalent to `Parsihax.regexp(~/[0-9]* /)`
   **/
   inline public static function digits() : Parser<String> {
     return ~/[0-9]*/.regexp();
   }
 
   /**
-    Equivalent to regexp \s+
+    Equivalent to `Parsihax.regexp(~/\s+/)`
   **/
   inline public static function whitespace() : Parser<String> {
     return ~/\s+/.regexp().desc('whitespace');
   }
 
   /**
-    Equivalent to regexp \s*
+    Equivalent to `Parsihax.regexp(~/\s* /)`
   **/
   inline public static function optWhitespace() : Parser<String> {
     return ~/\s*/.regexp();
   }
 
   /**
-    A parser that consumes and yields the next character of the stream.
+    A `Parser` that consumes and yields the next character of the stream.
   **/
   public static function any() : Parser<String> {
     return function(stream : String, i : Int = 0) : Result<String> {
@@ -132,7 +135,7 @@ class Parsihax {
   }
 
   /**
-    A parser that consumes and yields the entire remainder of the stream.
+    A `Parser` that consumes and yields the entire remainder of the stream.
   **/
   public static function all() : Parser<String> {
     return function(stream : String, i : Int = 0) : Result<String> {
@@ -141,7 +144,7 @@ class Parsihax {
   }
 
   /**
-    A parser that expects to be at the end of the stream (zero characters left).
+    A `Parser` that expects to be at the end of the stream (zero characters left).
   **/
   public static function eof<A>() : Parser<A> {
     return function(stream : String, i : Int = 0) : Result<A> {
@@ -152,9 +155,9 @@ class Parsihax {
   }
 
   /**
-    A parser that consumes no text and yields an object an object representing
-    the current offset into the parse: it has a 0-based character offset
-    property and 1-based line and column properties. Example:
+    A `Parser` that consumes no text and yields an object an `Index`,
+    representing the current offset into the parse: it has a 0-based character
+    offset property and 1-based line and column properties.
 
     ```haxe
     Parsihax.seq([
@@ -177,7 +180,7 @@ class Parsihax {
   }
 
   /**
-    Returns a parser that looks for string and yields that exact value.
+    Returns a `Parser` that looks for `String` and yields that exact value.
   **/
   public static function string(str : String) : Parser<String> {
     var len = str.length;
@@ -195,16 +198,16 @@ class Parsihax {
   }
 
   /**
-    Returns a parser that looks for exactly one `character` and yields that
-    exact value. This combinator is faster than `string` in case of matching
-    single character.
+    Returns a `Parser` that looks for exactly one character from `String` and
+    yields that exact value. This combinator is faster than `Parsihax.string`
+    in case of matching single character.
   **/
   public static function char(character : String) : Parser<String> {
     return function(ch) { return character == ch; }.test().desc("'"+character+"'");
   }
 
   /**
-    Returns a parser that looks for exactly one character from string, and
+    Returns a `Parser` that looks for exactly one character from `String`, and
     yields that character.
   **/
   public static function oneOf(str : String) : Parser<String> {
@@ -212,16 +215,16 @@ class Parsihax {
   }
 
   /**
-    Returns a parser that looks for exactly one character NOT from string, and
-    yields that character.
+    Returns a `Parser` that looks for exactly one character NOT from `String`,
+    and yields that character.
   **/
   public static function noneOf(str : String) : Parser<String> {
     return function(ch) { return str.indexOf(ch) < 0; }.test();
   }
 
   /**
-    Returns a parser that looks for a match to the regexp and yields the given
-    match group (defaulting to the entire match). The regexp will always match
+    Returns a `Parser` that looks for a match to the `EReg` and yields the given
+    match group (defaulting to the entire match). The `EReg` will always match
     starting at the current parse location. The regexp may only use the
     following flags: imu. Any other flag will result in some weird behaviour.
   **/
@@ -244,14 +247,15 @@ class Parsihax {
   }
 
   /**
-    This is an alias for Parser.regexp
+    This is an alias for `Parser.regexp`
   **/
   inline public static function regex(re : EReg, group : Int = 0) : Parser<String> {
     return regexp(re, group);
   }
 
   /**
-    Returns a parser that doesn't consume any of the string, and yields result. 
+    Returns a `Parser` that doesn't consume any of the string, and yields
+    `value`. 
   **/
   public static function succeed<A>(value : A) : Parser<A> {
     return function(stream : String, i : Int = 0) : Result<A> {
@@ -267,8 +271,9 @@ class Parsihax {
   }
 
   /**
-    Accepts array of parsers and returns a new parser that expects them to match
-    in order, yielding an array of all their results.
+    Accepts an array of parsers `Array<Parser>` and returns a new
+    `Parser<Array>` that expects them to match in order, yielding an array of
+    all their results.
   **/
   public static function seq<A>(parsers : Array<Parser<A>>) : Parser<Array<A>> {
     if (parsers.length == 0) return fail('sequence of parsers');
@@ -289,10 +294,10 @@ class Parsihax {
   }
 
   /**
-    Accepts array of parsers, yielding the value of the first one that succeeds,
-    backtracking in between. This means that the order of parsers matters.
-    If two parsers match the same prefix, the longer of the two must come first.
-    Example:
+    Accepts an array of parsers `Array<Parser>`, yielding the value of the first
+    one that succeeds, backtracking in between. This means that the order of
+    parsers matters. If two parsers match the same prefix, the longer of the two
+    must come first.
 
     ```haxe
     Parsihax.choice([
@@ -309,7 +314,7 @@ class Parsihax {
     ```
 
     In the second case, `Parsihax.choice` matches on the first parser, then
-    there are extra characters left over (`'b'`), so Parsihax returns a failure. 
+    there are extra characters left over (`'b'`), so `Parser` returns a failure. 
   **/
   public static function choice<A>(parsers : Array<Parser<A>>) : Parser<A> {
     if (parsers.length == 0) return fail('at least one choice');
@@ -327,8 +332,8 @@ class Parsihax {
   }
 
   /**
-    Accepts two parsers, and expects zero or more matches for content, separated
-    by separator, yielding an array. Example:
+    Accepts two `Parser`s, and expects zero or more matches for content,
+    separated by `separator`, yielding an array.
 
     ```haxe
     Parsihax.sepBy(
@@ -349,7 +354,7 @@ class Parsihax {
   }
 
   /**
-    This is the same as Parser.sepBy, but matches the content parser at least
+    This is the same as `Parser.sepBy`, but matches the content parser at least
     once.
   **/
   public static function sepBy1<A, B>(parser : Parser<A>, separator : Parser<B>) : Parser<Array<A>> {
@@ -363,9 +368,9 @@ class Parsihax {
   }
 
   /**
-    Accepts a function that returns a parser, which is evaluated the first time
-    the parser is used. This is useful for referencing parsers that haven't yet
-    been defined, and for implementing recursive parsers. Example:
+    Accepts a function that returns a `Parser`, which is evaluated the first
+    time the parser is used. This is useful for referencing parsers that haven't
+    yet been defined, and for implementing recursive parsers.
 
     ```haxe
     static var Value = Parsihax.lazy(function() {
@@ -392,7 +397,7 @@ class Parsihax {
   }
 
   /**
-    Returns a failing parser with the given message.
+    Returns a failing `Parser` with the given message.
   **/
   public static function fail<A>(expected : String) : Parser<A> {
     return function(stream : String, i : Int = 0) : Result<A> {
@@ -401,8 +406,8 @@ class Parsihax {
   }
 
   /**
-    Returns a parser that yield a single character if it passes the predicate
-    function. Example:
+    Returns a `Parser` that yield a single character if it passes the `predicate`
+    function `String -> Bool`.
 
     ```haxe
     var SameUpperLower = Parsihax.test(function(c) {
@@ -425,8 +430,8 @@ class Parsihax {
   }
 
   /**
-    Returns a parser yield a string containing all the next characters that pass
-    the predicate. Example:
+    Returns a `Parser` yielding a string containing all the next characters that
+    pass the `predicate : String -> Bool`.
 
     ```haxe
     var CustomString =
@@ -461,7 +466,7 @@ class Parsihax {
   }
 
   /**
-    Returns a new parser which tries `parser`, and if it fails uses
+    Returns a new `Parser` which tries `parser`, and if it fails uses
     `alternative`. Example:
 
     ```haxe
@@ -480,11 +485,11 @@ class Parsihax {
   }
 
   /**
-    Returns a new parser which tries `parser`, and on success calls the function
-    `f` with the result of the parse, which is expected to return another
-    parser, which will be tried next. This allows you to dynamically decide how
-    to continue the parse, which is impossible with the other combinators.
-    Example:
+    Returns a new `Parser` which tries `parser`, and on success calls the function
+    `f : A -> Parser<B>` with the result of the parse, which is expected to
+    return another parser, which will be tried next. This allows you to
+    dynamically decide how to continue the parse, which is impossible with the
+    other combinators.
 
     ```haxe
     var CustomString =
@@ -520,7 +525,7 @@ class Parsihax {
   }
 
   /**
-    Expects `next` to follow `parser`, and yields the result of `next`. Example:
+    Expects `next` to follow `parser`, and yields the result of `next`.
 
     ```haxe
     var parserA = p1.then(p2); // is equivalent to...
@@ -532,7 +537,7 @@ class Parsihax {
   }
 
   /**
-    Transforms the output of `parser` with the given function `f`. Example:
+    Transforms the output of `parser` with the given function `f : A -> B`.
 
     ```haxe
     var pNum = Parsihax.regexp(/[0-9]+/).map(Number);
@@ -551,15 +556,15 @@ class Parsihax {
   }
 
   /**
-    Returns a new parser with the same behavior, but which yields value.
-    Equivalent to parser.map(function(x) return x).
+    Returns a new `Parser` with the same behavior, but which yields value.
+    Equivalent to `Parsihax.map(parser, function(x) return x)`.
   **/
   public static function result<A, B>(parser: Parser<A>, res : B) : Parser<B> {
     return parser.map(function(_) return res);
   }
 
   /**
-    Expects `next` after `parser`, but yields the value of `parser`. Example:
+    Expects `next` after `parser`, but yields the value of `parser`.
 
     ```haxe
     var parserA = p1.skip(p2); // is equivalent to...
@@ -571,7 +576,7 @@ class Parsihax {
   };
 
   /**
-    Expects `parser` zero or more times, and yields an array of the results.
+    Expects `Parser` zero or more times, and yields an array of the results.
   **/
   public static function many<A>(parser: Parser<A>) : Parser<Array<A>> {
     return function(stream : String, i : Int = 0) : Result<Array<A>> {
@@ -592,14 +597,14 @@ class Parsihax {
   }
 
   /**
-    Expects `parser` one or more times, and yields an array of the results.
+    Expects `Parser` one or more times, and yields an array of the results.
   **/
   inline public static function many1<A>(parser: Parser<A>) : Parser<Array<A>> {
     return parser.atLeast(1);
   }
 
   /**
-    Expects `parser` between `min` and `max` times (or exactly `min` times, when
+    Expects `Parser` between `min` and `max` times (or exactly `min` times, when
     `max` is omitted), and yields an array of the results.
   **/
   public static function times<A>(parser: Parser<A>, min : Int, ?max : Int) : Parser<Array<A>> {
@@ -634,14 +639,14 @@ class Parsihax {
   }
 
   /**
-    Expects `parser` at most `n` times. Yields an array of the results.
+    Expects `Parser` at most `n` times. Yields an array of the results.
   **/
   inline public static function atMost<A>(parser: Parser<A>, n : Int) : Parser<Array<A>> {
     return parser.times(0, n);
   }
 
   /**
-    Expects `parser` at least `n` times. Yields an array of the results.
+    Expects `Parser` at least `n` times. Yields an array of the results.
   **/
   public static function atLeast<A>(parser: Parser<A>, n : Int) : Parser<Array<A>> {
     return [parser.times(n), parser.many()].seq().map(function(results) {
@@ -650,7 +655,7 @@ class Parsihax {
   }
 
   /**
-    A parser for an operand followed by zero or more operands (`p`) separated by
+    A `Parser` for an operand followed by zero or more operands (`p`) separated by
     right-associative operators (`op`).
   **/
   inline public static function chainr<A>(p : Parser<A>, op : Parser<A->A->A>) : Parser<A> {
@@ -658,7 +663,7 @@ class Parsihax {
   }
 
   /**
-    A parser for an operand followed by one or more operands (`p`) separated by
+    A `Parser` for an operand followed by one or more operands (`p`) separated by
     right-associative operators (`op`).
   **/
   public static function chainr1<A>(p : Parser<A>, op : Parser<A->A->A>) : Parser<A> {
@@ -678,7 +683,7 @@ class Parsihax {
   }
 
   /**
-    A parser for an operand followed by zero or more operands (`p`) separated by
+    A `Parser` for an operand followed by zero or more operands (`p`) separated by
     operators (`op`). This parser can for example be used to eliminate left
     recursion which typically occurs in expression grammars.
   **/
@@ -687,7 +692,7 @@ class Parsihax {
   }
 
   /**
-    A parser for an operand followed by one or more operands (`p`) separated by
+    A `Parser` for an operand followed by one or more operands (`p`) separated by
     operators (`op`). This parser can for example be used to eliminate left
     recursion which typically occurs in expression grammars.
   **/
@@ -704,7 +709,7 @@ class Parsihax {
   }
 
   /**
-    Yields an object with start, value, and end keys, where value is the
+    Yields a structure `Mark` with start, value, and end keys, where value is the
     original value yielded by the `parser`, and start and end are are objects
     with a 0-based offset and 1-based line and column properties that represent
     the position in the stream that contained the parsed text.
@@ -724,8 +729,8 @@ class Parsihax {
   }
 
   /**
-    Returns a new parser whose failure message is description. For example,
-    string('x').desc('the letter x') will indicate that 'the letter x' was
+    Returns a new `Parser` whose failure message is description. For example,
+    `string('x').desc('the letter x')` will indicate that 'the letter x' was
     expected.
   **/
   public static function desc<A>(parser: Parser<A>, expected : String) : Parser<A> {
@@ -737,21 +742,22 @@ class Parsihax {
   }
 
   /**
-    Returns a new failed parser with 'empty' message
+    Returns a new failed `Parser` with 'empty' message
   **/
   public static function empty<A>() : Parser<A> {
     return fail('empty');
   }
 
   /**
-    Makes `parser` optional, and returns `None` in the case that the parser does
-    not accept the current input. Otherwise, if `parser` would have parsed and
-    returned an `A`, option` will parse and return a `Some(A)`.
+    Makes `Parser` optional, and returns `None` in the case that the
+    parser does not accept the current input. Otherwise, if `Parser` would have
+    parsed and returned an `A`, option` will parse and return a
+    `Some(A)`.
   **/
-  public static function option<A>(parser: Parser<A>) : Parser<haxe.ds.Option<A>> {
+  public static function option<A>(parser: Parser<A>) : Parser<Option<A>> {
     return parser.map(function(r) {
-      return haxe.ds.Option.Some(r);
-    }).or(of(haxe.ds.Option.None));
+      return Some(r);
+    }).or(of(None));
   }
 
   /**
@@ -775,12 +781,12 @@ class Parsihax {
     This parser can then be used and composed the same way all the existing ones
     are used and composed, for example:
 
-    ```javascript
+    ```haxe
     var parser =
-      Parsihax.seq(
+      Parsihax.seq([
         Parsihax.string('a'),
         notChar('b').times(5)
-      );
+      ]);
     parser.parse('accccc');
     //=> {status: true, value: ['a', ['c', 'c', 'c', 'c', 'c']]}
     ```
@@ -793,7 +799,7 @@ class Parsihax {
   }
 
   /**
-    Obtain a human-readable error string.
+    Obtain a human-readable error `String`.
   **/
   public static function formatError<T>(result : Result<T>, stream : String) : String {
     var sexpected = result.expected.length == 1
@@ -818,21 +824,21 @@ class Parsihax {
   }
 
   /**
-    Monax compatibility. Function for initializing the monad sugar. 
+    `Monad` compatibility. Function for initializing the monad sugar. 
   **/
   macro public static function monad(body : haxe.macro.Expr) {
-    return com.mindrocks.monads.Monad._dO("Parsihax", body, haxe.macro.Context);
+    return Monad._dO("Parsihax", body, haxe.macro.Context);
   }
 
   /**
-    Monax compatibility. This is an alias for `Parsihax.succeed`. 
+    `Monad` compatibility. This is an alias for `Parsihax.succeed`. 
   **/
   inline public static function ret<T>(v : T) : Parser<T> {
     return v.succeed();
   }
 
   /**
-    Monax compatibility. This is an alias for `Parsihax.bind`. 
+    `Monad` compatibility. This is an alias for `Parsihax.bind`. 
   **/
   inline public static function flatMap<T,U>(p1 : Parser<T> , fp2 : T -> Parser<U>) : Parser<U> {
     return p1.bind(fp2);

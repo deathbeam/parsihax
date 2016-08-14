@@ -1,0 +1,7 @@
+-lib monax
+-dce std
+-cp src
+Parsihax
+-xml bin/parsihax.xml
+--next
+-cmd "haxelib run dox -i bin -o bin/pages"
