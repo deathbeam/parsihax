@@ -1,5 +1,9 @@
 language: haxe
 
+env:
+  global:
+    - GH_REF: github.com/deathbeam/parsihax.git
+
 haxe:
   - development
 
@@ -9,5 +13,8 @@ before_install:
 
 hxml:
   - build.hxml
-  - dox.hxml
   - test.hxml
+
+script:
+  - haxelib git dox https://github.com/HaxeFoundation/dox
+  - bash doc-deploy.sh
