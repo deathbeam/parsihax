@@ -3,6 +3,10 @@
 
 `Parsihax` is a small library for writing big parsers made up of lots of little parsers. The API is inspired by [parsec][], [Promises/A+][promises-aplus] and [Parsimmon][parsimmon] (originally, `Parsihax` was just supposed to be Parsimmon rewrite in Haxe).
 
+## API Documentation
+
+See the [annotated source of `Parsihax.hx`.][parsihax]
+
 ## Examples
 See the [test][] directory for annotated examples of parsing JSON, simple Lisp-like structure and monad parser.
 
@@ -55,7 +59,9 @@ a human-readable error string.
 
 Changing `parse` value changes parser behaviour, but still keeps it's reference, what is really usefull in recursive parsers.
 
+[parsihax]: https://github.com/deathbeam/parsihax/blob/master/src/Parsihax.hx
 [test]: https://github.com/deathbeam/parsihax/tree/master/test
+
 [monax]: https://github.com/sledorze/monax
 [promises-aplus]: https://promisesaplus.com/
 [parsec]: https://hackage.haskell.org/package/parsec
