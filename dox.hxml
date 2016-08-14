@@ -1,3 +1,4 @@
+-lib dox
 -lib monax
 -dce std
 -cp src

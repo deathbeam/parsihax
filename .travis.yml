@@ -7,12 +7,7 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install mono-devel
 
-before_script:
-  - haxelib install dox
-
-after_success:
-  - haxelib run dox -i bin -o bin/pages
-
 hxml:
-  - test.hxml
   - build.hxml
+  - dox.hxml
+  - test.hxml
