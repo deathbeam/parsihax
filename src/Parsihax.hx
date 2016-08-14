@@ -163,7 +163,7 @@ class Parsihax {
     Parsihax.seq([
       Parsihax.oneOf('Q\n').many(),
       Parsihax.string('B'),
-      Parsihax.index
+      Parsihax.index()
     ]).map(function(results) {
       var index = results[2];
       console.log(index.offset); // => 8
@@ -411,7 +411,7 @@ class Parsihax {
 
     ```haxe
     var SameUpperLower = Parsihax.test(function(c) {
-      return c.toUpperCase() === c.toLowerCase();
+      return c.toUpperCase() == c.toLowerCase();
     });
 
     SameUpperLower.parse('a'); // => {status: false, ...}
@@ -436,17 +436,18 @@ class Parsihax {
     ```haxe
     var CustomString =
       Parsihax.string('%')
-        .then(Parsihax.any)
+        .then(Parsihax.any())
         .bind(function(start) {
           var end = [
             '[' => ']',
             '(' => ')',
             '{' => '}',
             '<'=> '>'
-          ][start] || start;
+          ][start];
+          end = end != null ? end : start;
 
           return Parsihax.takeWhile(function(c) {
-            return c !== end;
+            return c != end;
           }).skip(Parsihax.string(end));
         });
 
@@ -494,17 +495,18 @@ class Parsihax {
     ```haxe
     var CustomString =
       Parsihax.string('%')
-        .then(Parsihax.any)
+        .then(Parsihax.any())
         .bind(function(start) {
           var end = [
             '[' => ']',
             '(' => ')',
             '{' => '}',
             '<'=> '>'
-          ][start] || start;
+          ][start];
+          end = end != null ? end : start;
 
           return Parsihax.takeWhile(function(c) {
-            return c !== end;
+            return c != end;
           }).skip(Parsihax.string(end));
         });
 
@@ -540,7 +542,7 @@ class Parsihax {
     Transforms the output of `parser` with the given function `f : A -> B`.
 
     ```haxe
-    var pNum = Parsihax.regexp(/[0-9]+/).map(Number);
+    var pNum = Parsihax.regexp(~/[0-9]+/).map(Std.parseInt);
 
     pNum.parse('9');   // => {status: true, value: 9}
     pNum.parse('123'); // => {status: true, value: 123}
@@ -769,10 +771,10 @@ class Parsihax {
     function notChar(char) {
       return Parsihax.custom(function(success, failure) {
         return function(stream, i) {
-          if (stream.charAt(i) !== char && i <= stream.length) {
+          if (stream.charAt(i) != char && i <= stream.length) {
             return success(i + 1, stream.charAt(i));
           }
-          return failure(i, 'anything different than "' + char + '"');
+          return failure(i, 'anything different than "$char"');
         };
       });
     }
@@ -782,11 +784,12 @@ class Parsihax {
     are used and composed, for example:
 
     ```haxe
-    var parser =
+    var parser : Parser<Array<Dynamic>> =
       Parsihax.seq([
         Parsihax.string('a'),
         notChar('b').times(5)
       ]);
+
     parser.parse('accccc');
     //=> {status: true, value: ['a', ['c', 'c', 'c', 'c', 'c']]}
     ```

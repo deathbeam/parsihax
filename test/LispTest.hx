@@ -1,6 +1,7 @@
 import Parsihax.*;
 using Parsihax;
 
+// ADT definition
 enum LispExpression {
   LispNumber(v: Int);
   LispSymbol(v: String);
