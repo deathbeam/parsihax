@@ -7,7 +7,8 @@ Parsimmon rewrite in Haxe).
 
 ## API Documentation
 
-See the [annotated source of `Parsihax.hx`.][parsihax].
+Haxe-generated API documentation is available at [documentation website][docs], or see the 
+[annotated source of `Parsihax.hx`.][parsihax]
 
 ## Examples
 
@@ -66,6 +67,7 @@ a human-readable error string.
 Changing `Parsihax.Parser.parse` value changes `Parsihax.Parser` behaviour, but still keeps it's reference, what is
 really usefull in recursive parsers.
 
+[docs]: https://deathbeam.github.io/parsihax/Parsihax.html
 [parsihax]: https://github.com/deathbeam/parsihax/blob/master/src/Parsihax.hx
 [test]: https://github.com/deathbeam/parsihax/tree/master/test
 
