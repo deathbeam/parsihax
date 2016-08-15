@@ -2,4 +2,4 @@
 -cp test
 -lib monax
 -main Test
---interp
+-x test/Test
