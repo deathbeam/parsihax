@@ -417,7 +417,7 @@ class Parsihax {
 
     ```haxe
     static var Value = Parsihax.lazy(function() {
-      return Parsihax.alt([
+      return Parsihax.choice([
         Parsihax.string('x'),
         Parsihax.string('(')
           .then(Value)
