@@ -42,7 +42,7 @@ will yield `'foobar'` if the stream starts with `'foo'`. The parser
 
 will yield the number `24` when it encounters the string `'12'`.
 
-Also, `Parsihax` supports nice monad sugar syntax (thanks to [monax][]). For example,
+Also, `Parsihax` supports nice monad sugar syntax (thanks to [Monax][monax]). For example,
 
 ```haxe
 monad({
