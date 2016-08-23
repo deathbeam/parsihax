@@ -58,27 +58,27 @@ typedef Result<T> = {
   /**
     Flag, indicating whether the parse succeeded
   **/
-  @:optional var status : Bool;
+  var status : Bool;
 
   /**
     Offset of the parse error (in case of failed parse)
   **/
-  @:optional var index : Int;
+  var index : Int;
 
   /**
     Yielded value of `Parser` (in case of successfull parse)
   **/
-  @:optional var value : T;
+  var value : T;
 
   /**
     Offset of last parse
   **/
-  @:optional var furthest : Int;
+  var furthest : Int;
 
   /**
     A sorted, unique array of messages indicating what was expected (in case of failed parse)
   **/
-  @:optional var expected : Array<String>;
+  var expected : Array<String>;
 };
 
 /**
