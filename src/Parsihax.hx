@@ -1,4 +1,3 @@
-import haxe.ds.Option;
 import haxe.ds.Vector;
 import com.mindrocks.monads.Monad;
 using Parsihax;
@@ -890,6 +889,9 @@ class Parsihax {
     return parser.bind(next);
   }
 
+  /**
+    Create successfull `Result` with specified `index` and `value`.
+  **/
   inline private static function makeSuccess<A>(index : Int, value : A) : Result<A> {
     return {
       status: true,
@@ -900,6 +902,9 @@ class Parsihax {
     };
   }
 
+  /**
+    Create failed `Result` with specified `index` and `expected` input.
+  **/
   inline private static function makeFailure<A>(index : Int, expected : String) : Result<A> {
     return {
       status: false,
@@ -910,6 +915,9 @@ class Parsihax {
     };
   }
 
+  /**
+    Create `Index` from position `i` in `stream`.
+  **/
   private static function makeIndex(stream : String, i : Int) : Index {
     var lines = stream.substring(0, i).split("\n");
     var lineWeAreUpTo = lines.length;
@@ -922,6 +930,9 @@ class Parsihax {
     };
   };
 
+  /**
+    Merge `result` and `last` into single `Result`.
+  **/
   private static function mergeReplies<A, B>(result : Result<A>, ?last : Result<B>) : Result<A> {
     if (last == null) return result;
     if (result.furthest > last.furthest) return result;
@@ -939,6 +950,9 @@ class Parsihax {
     }
   }
 
+  /**
+    Create unsafe union from two string arrays `xs` and `ys`.
+  **/
   private static function unsafeUnion(xs : Array<String>, ys : Array<String>) : Array<String> {
     if (xs.length == 0) {
       return ys;

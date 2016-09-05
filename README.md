@@ -5,6 +5,14 @@
 [parsec][], [Promises/A+][promises-aplus] and [Parsimmon][parsimmon] (originally, `Parsihax` was just supposed to be
 Parsimmon rewrite in Haxe).
 
+### Installation
+
+Install the library via [haxelib](http://lib.haxe.org/p/parsihax) (library manager that comes with any Haxe distribution).
+
+``` 
+haxelib install parsihax 
+```
+
 ## API Documentation
 
 Haxe-generated API documentation is available at [documentation website][docs], or see the 
