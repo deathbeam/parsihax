@@ -1,7 +1,5 @@
 import buddy.SingleSuite;
 using buddy.Should;
-import Parsihax.ret;
-import Parsihax.string;
 
 class Test extends SingleSuite {
   public function new() {
@@ -39,7 +37,7 @@ class Test extends SingleSuite {
           result = JsonGrammar.build()(input).status;
         });
 
-        it('should parse $input', {
+        it('should parse "$input"', {
           result.should.be(true);
         });
       });
@@ -51,7 +49,7 @@ class Test extends SingleSuite {
           result = LispGrammar.build()(input).status;
         });
 
-        it('should parse $input', {
+        it('should parse "$input"', {
           result.should.be(true);
         });
       });
@@ -68,7 +66,7 @@ class Test extends SingleSuite {
           }).parse(input).status;
         });
 
-        it('should parse $input', {
+        it('should parse "$input"', {
           result.should.be(true);
         });
       });
