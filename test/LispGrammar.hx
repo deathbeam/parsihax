@@ -8,7 +8,7 @@ enum LispExpression {
   LispList(v : Array<LispExpression>);
 }
 
-class LispTest {
+class LispGrammar {
   public static function build() {
     // We need to use `empty` here because the other parsers don't exist yet. We
     // can't just declare this later though, because `LList` references this parser!

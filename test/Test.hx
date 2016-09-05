@@ -1,55 +1,77 @@
-import Parsihax.Function;
-import Parsihax.formatError;
+import buddy.SingleSuite;
+using buddy.Should;
+import Parsihax.ret;
+import Parsihax.string;
 
-class Test {
-  public static function main() {
-    var json = '{
-      "firstName": "John",
-      "lastName": "Smith",
-      "age": 25,
-      "address": {
-        "streetAddress": "21 2nd Street",
-        "city": "New York",
-        "state": "NY",
-        "postalCode": "10021"
-      },
-      "phoneNumber": [
-        {
-          "type": "home",
-          "number": "212 555-1234"
-        },
-        {
-          "type": "fax",
-          "number": "646 555-4567"
-        }
-      ]
-    }';
+class Test extends SingleSuite {
+  public function new() {
+    describe("Using Parsihax", {
+      var result = false;
 
-    printAndParse('JSON', json, JSONTest.build());
+      beforeEach({
+        result = false;
+      });
 
-    var lisp = '( abc 89 ( c d 33 haleluje) )';
+      describe("JSON grammar", {
+        var input = '{
+          "firstName": "John",
+          "lastName": "Smith",
+          "age": 25,
+          "address": {
+            "streetAddress": "21 2nd Street",
+            "city": "New York",
+            "state": "NY",
+            "postalCode": "10021"
+          },
+          "phoneNumber": [
+            {
+              "type": "home",
+              "number": "212 555-1234"
+            },
+            {
+              "type": "fax",
+              "number": "646 555-4567"
+            }
+          ]
+        }';
 
-    printAndParse('Lisp', lisp, LispTest.build());
+        beforeEach({
+          result = JsonGrammar.build()(input).status;
+        });
 
-    var monad = "abc";
+        it('should parse $input', {
+          result.should.be(true);
+        });
+      });
 
-    printAndParse('Monad', monad, MonadTest.build());
-  }
+      describe("Lisp grammar", {
+        var input = '( abc 89 ( c d 33 haleluje) )';
 
-  private static function printAndParse<T>(name : String, input : String, parse : Function<T>) {
-    trace('-----------------------------------');
-    trace('Parser input ($name)');
-    trace('-----------------------------------');
-    trace('$input');
-    trace('-----------------------------------');
-    trace('Parser output ($name)');
-    trace('-----------------------------------');
+        beforeEach({
+          result = LispGrammar.build()(input).status;
+        });
 
-    var output = parse(input);
+        it('should parse $input', {
+          result.should.be(true);
+        });
+      });
 
-    trace(output.status
-      ? Std.string(output.value)
-      : formatError(output, input)
-    );
+      describe("Monad grammar", {
+        var input = 'abc';
+
+        beforeEach({
+          result = Parsihax.monad({
+            a <= string("a");
+            b <= string("b");
+            c <= string("c");
+            ret([a,b,c]);
+          }).parse(input).status;
+        });
+
+        it('should parse $input', {
+          result.should.be(true);
+        });
+      });
+    });
   }
 }
