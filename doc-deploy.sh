@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
-rm -rf bin || exit 0;
-mkdir bin;
+rm -rf bin || exit 0
+mkdir bin
 haxe doc.hxml
 
 if [ -z "$GH_TOKEN" ]; then
-	echo "Skipping pushing documentation to GitHub - missing $GH_TOKEN (probably in a PR build).";
-    exit 0;
+  echo "Skipping pushing documentation to GitHub - missing $GH_TOKEN (probably in a PR build).";
+  exit 0
 else
-    echo "Pushing documentation to GitHub"
+  echo "Pushing documentation to GitHub"
 fi
 
 cd bin/api
