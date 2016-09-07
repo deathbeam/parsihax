@@ -11,7 +11,8 @@ class Test extends SingleSuite {
       });
 
       describe("JSON grammar", {
-        var input = '{
+        var input = '
+        {
           "firstName": "John",
           "lastName": "Smith",
           "age": 25,
@@ -43,7 +44,10 @@ class Test extends SingleSuite {
       });
 
       describe("Lisp grammar", {
-        var input = '( abc 89 ( c d 33 haleluje) )';
+        var input = '
+          (if (empty brain)
+            (print "Hello Lisp!")
+            (print 42.0))';
 
         beforeEach({
           result = LispGrammar.build()(input).status;
@@ -63,7 +67,7 @@ class Test extends SingleSuite {
             b <= string("b");
             c <= string("c");
             ret([a,b,c]);
-          }).parse(input).status;
+          }).apply(input).status;
         });
 
         it('should parse "$input"', {

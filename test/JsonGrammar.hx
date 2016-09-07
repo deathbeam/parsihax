@@ -102,6 +102,6 @@ class JsonGrammar {
     .map(function(pairs) return JsonObject(pairs));
 
   public static function build() {
-    return json.parse;
+    return json.apply;
   }
 }

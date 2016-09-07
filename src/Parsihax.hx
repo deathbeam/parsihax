@@ -88,36 +88,36 @@ typedef Function<A> = String -> ?Int -> Result<A>;
 /**
   The Parser object is a wrapper for a parser function.
   Externally, you use one to parse a string by calling
-    `var result = SomeParser.parse('Me Me Me! Parse Me!');`
+    `var result = SomeParser.apply('Me Me Me! Parse Me!');`
 **/
 abstract Parser<T>(Vector<Function<T>>) {
   inline function new() this = new Vector(1);
-  @:to inline function get_parse() : Function<T> return this[0];
-  inline function set_parse(param : Function<T>) return this[0] = param;
+  @:to inline function get_apply() : Function<T> return this[0];
+  inline function set_apply(param : Function<T>) return this[0] = param;
 
   /**
-    Getting `Parser.parse` from a parser (or explicitly casting it to
+    Getting `Parser.apply` from a parser (or explicitly casting it to
     `Function` returns parsing function `String -> ?Int -> Result<A>`
     (or just `Function`), that parses the string and returns `Result<A>`.
 
-    Changing `Parser.parse` value changes parser behaviour, but still keeps it's
+    Changing `Parser.apply` value changes parser behaviour, but still keeps it's
     reference, what is really usefull in recursive parsers.
   **/
-  public var parse(get, set): Function<T>;
+  public var apply(get, set): Function<T>;
 
   /**
     Creates `Parser` from `Function`
   **/
   @:noUsing @:from static inline public function to<T>(v : Function<T>) : Parser<T> {
     var ret = new Parser();
-    ret.parse = v;
+    ret.apply = v;
     return ret;
   }
 }
 
 /**
   Defines grammar and encapsulates parsing logic. A `Parser` takes as input a
-  `String` source and parses it when the `Parser.parse` method is called.
+  `String` source and parses it when the `Parser.apply` method is called.
   A structure `Result` is returned.
 **/
 class Parsihax {
@@ -212,7 +212,7 @@ class Parsihax {
       console.log(index.line);   // => 3
       console.log(index.column); // => 5
       return results[1];
-    }).parse('QQ\n\nQQQB');
+    }).apply('QQ\n\nQQQB');
     ```
   **/
   public static function index() : Parser<Index> {
@@ -325,7 +325,7 @@ class Parsihax {
       var accum : Array<A> = [];
 
       for (parser in parsers) {
-        result = mergeReplies(parser.parse(stream, i), result);
+        result = mergeReplies(parser.apply(stream, i), result);
         if (!result.status) return cast(result);
         accum.push(result.value);
         i = result.index;
@@ -345,13 +345,13 @@ class Parsihax {
     Parsihax.choice([
       Parsihax.string('ab'),
       Parsihax.string('a')
-    ]).parse('ab');
+    ]).apply('ab');
     // => {status: true, value: 'ab'}
 
     Parsihax.choice([
       Parsihax.string('a'),
       Parsihax.string('ab')
-    ]).parse('ab');
+    ]).apply('ab');
     // => {status: false, ...}
     ```
 
@@ -365,7 +365,7 @@ class Parsihax {
       var result : Result<A> = null;
 
       for (parser in parsers) {
-        result = mergeReplies(parser.parse(stream, i), result);
+        result = mergeReplies(parser.apply(stream, i), result);
         if (result.status) return result;
       }
 
@@ -381,13 +381,13 @@ class Parsihax {
     Parsihax.sepBy(
       Parsihax.oneOf('abc'),
       Parsihax.string('|')
-    ).parse('a|b|c|c|c|a');
+    ).apply('a|b|c|c|c|a');
     // => {status: true, value: ['a', 'b', 'c', 'c', 'c', 'a']}
 
     Parsihax.sepBy(
       Parsihax.oneOf('XYZ'),
       Parsihax.string('-')
-    ).parse('');
+    ).apply('');
     // => {status: true, value: []}
     ```
   **/
@@ -425,16 +425,16 @@ class Parsihax {
     });
 
     // ...
-    Value.parse('X');     // => {status: true, value: 'X'}
-    Value.parse('(X)');   // => {status: true, value: 'X'}
-    Value.parse('((X))'); // => {status: true, value: 'X'}
+    Value.apply('X');     // => {status: true, value: 'X'}
+    Value.apply('(X)');   // => {status: true, value: 'X'}
+    Value.apply('((X))'); // => {status: true, value: 'X'}
     ```
   **/
   public static function lazy<A>(fun : Void -> Parser<A>) : Parser<A> {
     var parser : Parser<A> = null;
     
     return parser = function(stream : String, i : Int = 0) : Result<A> {
-      return (parser.parse = fun().parse)(stream, i);
+      return (parser.apply = fun().apply)(stream, i);
     };
   }
 
@@ -456,9 +456,9 @@ class Parsihax {
       return c.toUpperCase() == c.toLowerCase();
     });
 
-    SameUpperLower.parse('a'); // => {status: false, ...}
-    SameUpperLower.parse('-'); // => {status: true, ...}
-    SameUpperLower.parse(':'); // => {status: true, ...}
+    SameUpperLower.apply('a'); // => {status: false, ...}
+    SameUpperLower.apply('-'); // => {status: true, ...}
+    SameUpperLower.apply(':'); // => {status: true, ...}
     ```
   **/
   public static function test(predicate : String -> Bool) : Parser<String> {
@@ -493,11 +493,11 @@ class Parsihax {
           }).skip(Parsihax.string(end));
         });
 
-    CustomString.parse('%:a string:'); // => {status: true, value: 'a string'}
-    CustomString.parse('%[a string]'); // => {status: true, value: 'a string'}
-    CustomString.parse('%{a string}'); // => {status: true, value: 'a string'}
-    CustomString.parse('%(a string)'); // => {status: true, value: 'a string'}
-    CustomString.parse('%<a string>'); // => {status: true, value: 'a string'}
+    CustomString.apply('%:a string:'); // => {status: true, value: 'a string'}
+    CustomString.apply('%[a string]'); // => {status: true, value: 'a string'}
+    CustomString.apply('%{a string}'); // => {status: true, value: 'a string'}
+    CustomString.apply('%(a string)'); // => {status: true, value: 'a string'}
+    CustomString.apply('%<a string>'); // => {status: true, value: 'a string'}
     ```
   **/
   public static function takeWhile(predicate : String -> Bool) : Parser<String> {
@@ -518,9 +518,9 @@ class Parsihax {
         .or(Parsihax.of('-'))
         .or(Parsihax.of(''));
 
-    numberPrefix.parse('+'); // => {status: true, value: '+'}
-    numberPrefix.parse('-'); // => {status: true, value: '-'}
-    numberPrefix.parse('');  // => {status: true, value: ''}
+    numberPrefix.apply('+'); // => {status: true, value: '+'}
+    numberPrefix.apply('-'); // => {status: true, value: '-'}
+    numberPrefix.apply('');  // => {status: true, value: ''}
     ```
   **/
   public static function or<A>(parser: Parser<A>, alternative : Parser<A>) : Parser<A> {
@@ -552,19 +552,19 @@ class Parsihax {
           }).skip(Parsihax.string(end));
         });
 
-    CustomString.parse('%:a string:'); // => {status: true, value: 'a string'}
-    CustomString.parse('%[a string]'); // => {status: true, value: 'a string'}
-    CustomString.parse('%{a string}'); // => {status: true, value: 'a string'}
-    CustomString.parse('%(a string)'); // => {status: true, value: 'a string'}
-    CustomString.parse('%<a string>'); // => {status: true, value: 'a string'}
+    CustomString.apply('%:a string:'); // => {status: true, value: 'a string'}
+    CustomString.apply('%[a string]'); // => {status: true, value: 'a string'}
+    CustomString.apply('%{a string}'); // => {status: true, value: 'a string'}
+    CustomString.apply('%(a string)'); // => {status: true, value: 'a string'}
+    CustomString.apply('%<a string>'); // => {status: true, value: 'a string'}
     ```
   **/
   public static function bind<A, B>(parser: Parser<A>, fun : A -> Parser<B>) : Parser<B> {
     return function(stream : String, i : Int = 0) : Result<B> {
-      var result = parser.parse(stream, i);
+      var result = parser.apply(stream, i);
       if (!result.status) return cast(result);
       var nextParser = fun(result.value);
-      return mergeReplies(nextParser.parse(stream, result.index), result);
+      return mergeReplies(nextParser.apply(stream, result.index), result);
     };
   }
 
@@ -584,16 +584,16 @@ class Parsihax {
     Transforms the output of `parser` with the given function `fun : A -> B`.
 
     ```haxe
-    var pNum = Parsihax.regexp(~/[0-9]+/).map(Std.parseInt);
+    var pNum = Parsihax.regexp(~/[0-9]+/).map(Std.applyInt);
 
-    pNum.parse('9');   // => {status: true, value: 9}
-    pNum.parse('123'); // => {status: true, value: 123}
-    pNum.parse('3.1'); // => {status: true, value: 3.1}
+    pNum.apply('9');   // => {status: true, value: 9}
+    pNum.apply('123'); // => {status: true, value: 123}
+    pNum.apply('3.1'); // => {status: true, value: 3.1}
     ```
   **/
   public static function map<A, B>(parser: Parser<A>, fun : A -> B) : Parser<B> {
     return function(stream : String, i : Int = 0) : Result<B> {
-      var result = parser.parse(stream, i);
+      var result = parser.apply(stream, i);
       if (!result.status) return cast(result);
       return mergeReplies(makeSuccess(result.index, fun(result.value)), result);
     };
@@ -628,7 +628,7 @@ class Parsihax {
       var result = null;
 
       while (true) {
-        result = mergeReplies(parser.parse(stream, i), result);
+        result = mergeReplies(parser.apply(stream, i), result);
 
         if (result.status) {
           i = result.index;
@@ -661,7 +661,7 @@ class Parsihax {
       var prevResult = null;
 
       for (times in 0...min) {
-        result = parser.parse(stream, i);
+        result = parser.apply(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -670,7 +670,7 @@ class Parsihax {
       }
 
       for (times in 0...max) {
-        result = parser.parse(stream, i);
+        result = parser.apply(stream, i);
         prevResult = mergeReplies(result, prevResult);
         if (result.status) {
           i = result.index;
@@ -779,7 +779,7 @@ class Parsihax {
   **/
   public static function desc<A>(parser: Parser<A>, expected : String) : Parser<A> {
     return function(stream : String, i : Int = 0) : Result<A> {
-      var reply = parser.parse(stream, i);
+      var reply = parser.apply(stream, i);
       if (!reply.status) reply.expected = [expected];
       return reply;
     };
@@ -832,7 +832,7 @@ class Parsihax {
         notChar('b').times(5)
       ]);
 
-    parser.parse('accccc');
+    parser.apply('accccc');
     //=> {status: true, value: ['a', ['c', 'c', 'c', 'c', 'c']]}
     ```
   **/
