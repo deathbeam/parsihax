@@ -1,5 +1,5 @@
-import Parsihax.*;
-using Parsihax;
+import parsi.Hax.*;
+using parsi.Hax;
 using LispGrammar;
 
 // ADT definition
@@ -54,7 +54,7 @@ class LispGrammar {
       LNumber,
       LString,
       LList
-    ].choice();
+    ].alt();
 
     // Let's remember to throw away whitespace at the top level of the parser.
     return optWhitespace().then(LExpression).apply;

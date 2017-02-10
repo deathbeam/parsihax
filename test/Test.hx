@@ -1,3 +1,4 @@
+import parsi.Hax;
 import buddy.SingleSuite;
 using buddy.Should;
 
@@ -58,22 +59,6 @@ class Test extends SingleSuite {
         });
       });
 
-      describe("Monad grammar", {
-        var input = 'abc';
-
-        beforeEach({
-          result = Parsihax.monad({
-            a <= string("a");
-            b <= string("b");
-            c <= string("c");
-            ret([a,b,c]);
-          }).apply(input).status;
-        });
-
-        it('should parse "$input"', {
-          result.should.be(true);
-        });
-      });
     });
   }
 }

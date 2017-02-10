@@ -1,5 +1,5 @@
-import Parsihax.*;
-using Parsihax;
+import parsi.Hax.*;
+using parsi.Hax;
 
 // ADT definition
 enum JsonExpression {
@@ -24,7 +24,7 @@ class JsonGrammar {
       nullLiteral,
       trueLiteral,
       falseLiteral
-    ].choice());
+    ].alt());
   }.lazy();
 
   // Use the Json standard's definition of whitespace rather than Parsihax's.
@@ -78,7 +78,7 @@ class JsonGrammar {
       }));
     }).desc('string');
 
-  static var numberLiteral = 
+  static var numberLiteral =
     token(~/-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/.regexp())
     .map(function(result) return JsonNumber(Std.parseInt(result)))
     .desc('number');
@@ -93,11 +93,11 @@ class JsonGrammar {
   // Object parsing is a little trickier because we have to collect all the key-
   // value pairs in order as length-2 arrays, then manually copy them into an
   // object.
-  static var pair = 
+  static var pair =
     [stringLiteral.skip(colon), json].seq()
     .map(function(results) return JsonPair(results[0], results[1]));
 
-  static var object = 
+  static var object =
     lbrace.then(commaSep(pair)).skip(rbrace)
     .map(function(pairs) return JsonObject(pairs));
 
