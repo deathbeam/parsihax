@@ -1,4 +1,4 @@
-# Hax
+# Parsihax
 [![TravisCI Build Status](https://api.travis-ci.org/deathbeam/parsihax.svg?branch=master)](https://travis-ci.org/deathbeam/parsihax)
 
 Parsihax is a small library for writing big parsers made up of lots of little parsers. The API is inspired by
