@@ -1,3 +1,5 @@
+package parsi;
+
 import parsi.Hax.*;
 using parsi.Hax;
 
@@ -55,7 +57,7 @@ class JsonGrammar {
   static var trueLiteral = token('true'.string()).result(JsonTrue);
   static var falseLiteral = token('false'.string()).result(JsonFalse);
 
-  // Regexp based parsers should generally be named for better error reporting.
+  // regexp based parsers should generally be named for better error reporting.
   static var stringLiteral =
     token(~/"((?:\\.|.)*?)"/.regexp(1))
     // Turn escaped characters into real ones (e.g. "\\n" becoems "\n").
@@ -76,12 +78,12 @@ class JsonGrammar {
         if (escapes.exists(type)) return escapes[type];
         return type;
       }));
-    }).desc('string');
+    }).as('string');
 
   static var numberLiteral =
     token(~/-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/.regexp())
     .map(function(result) return JsonNumber(Std.parseInt(result)))
-    .desc('number');
+    .as('number');
 
   // Array parsing is just ignoring brackets and commas and parsing as many nested
   // Json documents as possible. Notice that we're using the parser `json` we just

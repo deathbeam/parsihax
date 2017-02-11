@@ -1,6 +1,8 @@
+package parsi;
+
 import parsi.Hax.*;
 using parsi.Hax;
-using LispGrammar;
+using parsi.LispGrammar;
 
 // ADT definition
 enum LispExpression {
@@ -27,17 +29,17 @@ class LispGrammar {
     var LString =
       ~/"[^"]*"/.regexp().trim()
       .map(function(r) return LispString(r))
-      .desc('string');
+      .as('string');
 
     var LSymbol =
       ~/[a-zA-Z_-][a-zA-Z0-9_-]*/.regexp().trim()
       .map(function(r) return LispSymbol(r))
-      .desc('symbol');
+      .as('symbol');
 
     var LNumber =
       ~/(?=.)([+-]?([0-9]*)(\.([0-9]+))?)/.regexp().trim()
       .map(function(r) return LispNumber(Std.parseFloat(r)))
-      .desc('number');
+      .as('number');
 
     // `.then` throws away the first value, and `.skip` throws away the second
     // `.value, so we're left with just the `LExpression.many()` part as the

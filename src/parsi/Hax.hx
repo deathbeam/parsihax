@@ -1,29 +1,7 @@
 package parsi;
 
 import haxe.ds.Vector;
-import com.mindrocks.monads.Monad;
 using parsi.Hax;
-
-/**
-  Structure yielded from `Hax.mark`, what contains original value yielded
-  by parser and start, end `Index`
-**/
-typedef Mark<T> = {
-  /**
-    `Index` indicating start position of `value` in stream
-  **/
-  var start : Int;
-
-  /**
-    `Index` indicating end position of `value` in stream
-  **/
-  var end : Int;
-
-  /**
-    Original value yielded by `Parser`
-  **/
-  var value : T;
-}
 
 /**
   A structure with a boolean `status` flag, indicating whether the parse
@@ -96,16 +74,25 @@ abstract Parser<T>(Vector<Function<T>>) {
     return ret;
   }
 
+  /**
+    Same as `Hax.then(l, r)`
+  **/
   @:noUsing @:op(A + B) static inline public function opAdd<A, B>(l: Parser<A>, r: Parser<B>): Parser<B> {
     return Hax.then(l, r);
   }
 
+  /**
+    Same as `Hax.or(l, r)`
+  **/
   @:noUsing @:op(A | B) static inline public function opOr<A>(l: Parser<A>, r: Parser<A>): Parser<A> {
     return Hax.or(l, r);
   }
 
+  /**
+    Same as `Hax.as(l, r)`
+  **/
   @:noUsing @:op(A / B) static inline public function opDiv<A>(l: Parser<A>, r: String): Parser<A> {
-    return Hax.desc(l, r);
+    return Hax.as(l, r);
   }
 
 }
@@ -120,7 +107,7 @@ class Hax {
     Equivalent to `Hax.regexp(~/[a-z]/i)`
   **/
   inline public static function letter() : Parser<String> {
-    return ~/[a-z]/i.regexp().desc('a letter');
+    return ~/[a-z]/i.regexp().as('a letter');
   }
 
   /**
@@ -134,7 +121,7 @@ class Hax {
     Equivalent to `Hax.regexp(~/[0-9]/)`
   **/
   inline public static function digit() : Parser<String> {
-    return ~/[0-9]/.regexp().desc('a digit');
+    return ~/[0-9]/.regexp().as('a digit');
   }
 
   /**
@@ -148,7 +135,7 @@ class Hax {
     Equivalent to `Hax.regexp(~/\s+/)`
   **/
   inline public static function whitespace() : Parser<String> {
-    return ~/\s+/.regexp().desc('whitespace');
+    return ~/\s+/.regexp().as('whitespace');
   }
 
   /**
@@ -213,7 +200,7 @@ class Hax {
     in case of matching single character.
   **/
   public static function char(character : String) : Parser<String> {
-    return function(ch) { return character == ch; }.test().desc("'"+character+"'");
+    return function(ch) { return character == ch; }.test().as("'"+character+"'");
   }
 
   /**
@@ -254,13 +241,6 @@ class Hax {
 
       return makeFailure(i, expected);
     };
-  }
-
-  /**
-    This is an alias for `Parser.regexp`
-  **/
-  inline public static function regex(re : EReg, group : Int = 0) : Parser<String> {
-    return regexp(re, group);
   }
 
   /**
@@ -677,10 +657,10 @@ class Hax {
 
   /**
     Returns a new `Parser` whose failure message is expected parameter. For example,
-    `string('x').desc('the letter x')` will indicate that 'the letter x' was
+    `string('x').as('the letter x')` will indicate that 'the letter x' was
     expected.
   **/
-  public static function desc<A>(parser: Parser<A>, expected : String) : Parser<A> {
+  public static function as<A>(parser: Parser<A>, expected : String) : Parser<A> {
     return function(stream : String, i : Int = 0) : Result<A> {
       var reply = parser.apply(stream, i);
       if (!reply.status) reply.expected = [expected];
