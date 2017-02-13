@@ -3,7 +3,7 @@
 -lib monax
 -lib buddy
 -dce full
--main Test
+-main parsihax.Test
 --each
 
 -dce std

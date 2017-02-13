@@ -2,5 +2,5 @@
 -cp test
 -lib monax
 -lib buddy
--main parsi.Test
--x test/parsi/Test
+-main parsihax.Test
+-x test/parsihax/Test

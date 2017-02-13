@@ -1,7 +1,8 @@
-package parsi;
+package parsihax;
 
-import parsi.Hax.*;
-using parsi.Hax;
+import parsihax.*;
+import parsihax.Parser.*;
+using parsihax.Parser;
 
 // ADT definition
 enum JsonExpression {

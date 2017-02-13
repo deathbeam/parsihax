@@ -1,8 +1,9 @@
-package parsi;
+package parsihax;
 
-import parsi.Hax.*;
-using parsi.Hax;
-using parsi.LispGrammar;
+import parsihax.*;
+import parsihax.Parser.*;
+using parsihax.Parser;
+using parsihax.LispGrammar;
 
 // ADT definition
 enum LispExpression {
@@ -14,7 +15,7 @@ enum LispExpression {
 
 class LispGrammar {
   // A little helper to wrap a parser with optional whitespace.
-  private static inline function trim(parser : Parser<String>) {
+  private static inline function trim(parser : ParseObject<String>) {
     return parser.skip(optWhitespace());
   }
 

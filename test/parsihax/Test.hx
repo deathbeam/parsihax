@@ -1,6 +1,5 @@
-package parsi;
+package parsihax;
 
-import parsi.Hax;
 import buddy.SingleSuite;
 using buddy.Should;
 

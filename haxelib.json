@@ -4,8 +4,8 @@
   "license": "MIT",
   "tags": ["parser", "parsing",  "cross", "utility"],
   "description": "A monadic LL(infinity) parser combinator library for Haxe.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "classPath": "src/",
-  "releasenote": "Fix global scope, simplify API, add operator overloading",
+  "releasenote": "Restructure API, update documentation",
   "contributors": [ "deathbeam" ]
 }
