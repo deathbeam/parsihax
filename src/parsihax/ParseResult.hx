@@ -11,6 +11,7 @@ package parsihax;
   `Parser.formatError` to obtain a human-readable error string.
 **/
 typedef ParseResult<T> = {
+
   /**
     Flag, indicating whether the parse succeeded
   **/
@@ -35,4 +36,5 @@ typedef ParseResult<T> = {
     A sorted, unique array of messages indicating what was expected (in case of failed parse)
   **/
   var expected : Array<String>;
+
 }

@@ -8,6 +8,7 @@ import haxe.ds.Vector;
     `var result = SomeParseObject.apply('Me Me Me! Parse Me!');`
 **/
 abstract ParseObject<T>(Vector<ParseFunction<T>>) {
+
   inline function new() this = new Vector(1);
   @:to inline function get_apply() : ParseFunction<T> return this[0];
   inline function set_apply(param : ParseFunction<T>) return this[0] = param;
@@ -25,7 +26,7 @@ abstract ParseObject<T>(Vector<ParseFunction<T>>) {
   /**
     Creates `ParseObject` from `ParseFunction`
   **/
-  @:noUsing @:from static inline public function to<T>(v : ParseFunction<T>) : ParseObject<T> {
+  @:noUsing @:from public static inline function to<T>(v : ParseFunction<T>) : ParseObject<T> {
     var ret = new ParseObject();
     ret.apply = v;
     return ret;
@@ -34,21 +35,21 @@ abstract ParseObject<T>(Vector<ParseFunction<T>>) {
   /**
     Same as `Hax.then(l, r)`
   **/
-  @:noUsing @:op(A + B) static inline public function opAdd<A, B>(l: ParseObject<A>, r: ParseObject<B>): ParseObject<B> {
+  @:noUsing @:op(A + B) public static inline function opAdd<A, B>(l: ParseObject<A>, r: ParseObject<B>): ParseObject<B> {
     return Parser.then(l, r);
   }
 
   /**
     Same as `Hax.or(l, r)`
   **/
-  @:noUsing @:op(A | B) static inline public function opOr<A>(l: ParseObject<A>, r: ParseObject<A>): ParseObject<A> {
+  @:noUsing @:op(A | B) public static inline function opOr<A>(l: ParseObject<A>, r: ParseObject<A>): ParseObject<A> {
     return Parser.or(l, r);
   }
 
   /**
     Same as `Hax.as(l, r)`
   **/
-  @:noUsing @:op(A / B) static inline public function opDiv<A>(l: ParseObject<A>, r: String): ParseObject<A> {
+  @:noUsing @:op(A / B) public static inline function opDiv<A>(l: ParseObject<A>, r: String): ParseObject<A> {
     return Parser.as(l, r);
   }
 

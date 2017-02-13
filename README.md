@@ -71,7 +71,7 @@ with a boolean `status` flag, indicating whether the parse succeeded. If it succ
 contain the yielded value. Otherwise, the `index` and `expected` attributes will contain the offset of the parse error,
 and a sorted, unique array of messages indicating what was expected.
 
-The error object can be passed along with the original source to `Parser.formatError` to obtain
+The error object can be passed along with the original source to `ParseUtil.formatError` to obtain
 a human-readable error string.
 
 Changing `ParseObject.apply` value changes `ParseObject` behaviour, but still keeps it's reference, what is

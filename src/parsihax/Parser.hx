@@ -8,45 +8,55 @@ using parsihax.Parser;
   A structure `ParseResult` is returned.
 **/
 class Parser {
+
+  /**
+    Yields current position in stream
+  **/
+  public static function index() : ParseObject<Int> {
+    return function(stream : String, i : Int = 0) : ParseResult<Int> {
+      return ParseUtil.makeSuccess(i, i);
+    };
+  }
+
   /**
     Equivalent to `Parser.regexp(~/[a-z]/i)`
   **/
-  inline public static function letter() : ParseObject<String> {
+  public static inline function letter() : ParseObject<String> {
     return ~/[a-z]/i.regexp().as('a letter');
   }
 
   /**
     Equivalent to `Parser.regexp(~/[a-z]* /i)`
   **/
-  inline public static function letters() : ParseObject<String> {
+  public static inline function letters() : ParseObject<String> {
     return ~/[a-z]*/i.regexp();
   }
 
   /**
     Equivalent to `Parser.regexp(~/[0-9]/)`
   **/
-  inline public static function digit() : ParseObject<String> {
+  public static inline function digit() : ParseObject<String> {
     return ~/[0-9]/.regexp().as('a digit');
   }
 
   /**
     Equivalent to `Parser.regexp(~/[0-9]* /)`
   **/
-  inline public static function digits() : ParseObject<String> {
+  public static inline function digits() : ParseObject<String> {
     return ~/[0-9]*/.regexp();
   }
 
   /**
     Equivalent to `Parser.regexp(~/\s+/)`
   **/
-  inline public static function whitespace() : ParseObject<String> {
+  public static inline function whitespace() : ParseObject<String> {
     return ~/\s+/.regexp().as('whitespace');
   }
 
   /**
     Equivalent to `Parser.regexp(~/\s* /)`
   **/
-  inline public static function optWhitespace() : ParseObject<String> {
+  public static inline function optWhitespace() : ParseObject<String> {
     return ~/\s*/.regexp();
   }
 
@@ -56,8 +66,8 @@ class Parser {
   public static function any() : ParseObject<String> {
     return function(stream : String, i : Int = 0) : ParseResult<String> {
       return i >= stream.length
-        ? makeFailure(i, 'any character')
-        : makeSuccess(i+1, stream.charAt(i));
+        ? ParseUtil.makeFailure(i, 'any character')
+        : ParseUtil.makeSuccess(i+1, stream.charAt(i));
     };
   }
 
@@ -66,7 +76,7 @@ class Parser {
   **/
   public static function all() : ParseObject<String> {
     return function(stream : String, i : Int = 0) : ParseResult<String> {
-      return makeSuccess(stream.length, stream.substring(i));
+      return ParseUtil.makeSuccess(stream.length, stream.substring(i));
     };
   }
 
@@ -76,8 +86,8 @@ class Parser {
   public static function eof<A>() : ParseObject<A> {
     return function(stream : String, i : Int = 0) : ParseResult<A> {
       return i < stream.length
-        ? makeFailure(i, 'EOF')
-        : makeSuccess(i, null);
+        ? ParseUtil.makeFailure(i, 'EOF')
+        : ParseUtil.makeSuccess(i, null);
     };
   }
 
@@ -92,9 +102,9 @@ class Parser {
       var head = stream.substring(i, i + len);
 
       if (head == string) {
-        return makeSuccess(i+len, head);
+        return ParseUtil.makeSuccess(i+len, head);
       } else {
-        return makeFailure(i, expected);
+        return ParseUtil.makeFailure(i, expected);
       }
     };
   }
@@ -140,11 +150,11 @@ class Parser {
         var groupMatch = re.matched(group);
         var pos = re.matchedPos();
         if (groupMatch != null && pos.pos == 0) {
-          return makeSuccess(i + pos.len, groupMatch);
+          return ParseUtil.makeSuccess(i + pos.len, groupMatch);
         }
       }
 
-      return makeFailure(i, expected);
+      return ParseUtil.makeFailure(i, expected);
     };
   }
 
@@ -154,7 +164,7 @@ class Parser {
   **/
   public static function succeed<A>(value : A) : ParseObject<A> {
     return function(stream : String, i : Int = 0) : ParseResult<A> {
-      return makeSuccess(i, value);
+      return ParseUtil.makeSuccess(i, value);
     };
   }
 
@@ -163,7 +173,7 @@ class Parser {
   **/
   public static function fail<A>(expected : String) : ParseObject<A> {
     return function(stream : String, i : Int = 0) : ParseResult<A> {
-      return makeFailure(i, expected);
+      return ParseUtil.makeFailure(i, expected);
     }
   }
 
@@ -187,13 +197,13 @@ class Parser {
       var accum : Array<A> = [];
 
       for (parser in parsers) {
-        result = mergeReplies(parser.apply(stream, i), result);
+        result = ParseUtil.mergeReplies(parser.apply(stream, i), result);
         if (!result.status) return cast(result);
         accum.push(result.value);
         i = result.index;
       }
 
-      return mergeReplies(makeSuccess(i, accum), result);
+      return ParseUtil.mergeReplies(ParseUtil.makeSuccess(i, accum), result);
     };
   }
 
@@ -227,7 +237,7 @@ class Parser {
       var result : ParseResult<A> = null;
 
       for (parser in parsers) {
-        result = mergeReplies(parser.apply(stream, i), result);
+        result = ParseUtil.mergeReplies(parser.apply(stream, i), result);
         if (result.status) return result;
       }
 
@@ -253,7 +263,7 @@ class Parser {
     // => {status: true, value: []}
     ```
   **/
-  inline public static function sepBy<A, B>(parser : ParseObject<A>, separator : ParseObject<B>) : ParseObject<Array<A>> {
+  public static inline function sepBy<A, B>(parser : ParseObject<A>, separator : ParseObject<B>) : ParseObject<Array<A>> {
     return parser.sepBy1(separator).or([].succeed());
   }
 
@@ -269,35 +279,6 @@ class Parser {
         return [r].concat(rs);
       });
     });
-  }
-
-  /**
-    Accepts a function that returns a `ParseObject`, which is evaluated the first
-    time the parser is used. This is useful for referencing parsers that haven't
-    yet been defined, and for implementing recursive parsers.
-
-    ```haxe
-    static var Value = Parser.lazy(function() {
-      return Parser.alt([
-        Parser.string('x'),
-        Parser.string('(')
-          .then(Value)
-          .skip(Parser.string(')'))
-      ]);
-    });
-
-    // ...
-    Value.apply('X');     // => {status: true, value: 'X'}
-    Value.apply('(X)');   // => {status: true, value: 'X'}
-    Value.apply('((X))'); // => {status: true, value: 'X'}
-    ```
-  **/
-  public static function lazy<A>(fun : Void -> ParseObject<A>) : ParseObject<A> {
-    var parser : ParseObject<A> = null;
-
-    return parser = function(stream : String, i : Int = 0) : ParseResult<A> {
-      return (parser.apply = fun().apply)(stream, i);
-    };
   }
 
   /**
@@ -319,8 +300,8 @@ class Parser {
       var char = stream.charAt(i);
 
       return i < stream.length && predicate(char)
-        ? makeSuccess(i+1, char)
-        : makeFailure(i, 'a character matching ' + predicate);
+        ? ParseUtil.makeSuccess(i+1, char)
+        : ParseUtil.makeFailure(i, 'a character matching ' + predicate);
     };
   }
 
@@ -357,7 +338,7 @@ class Parser {
     return function(stream : String, i : Int = 0) : ParseResult<String> {
       var j = i;
       while (j < stream.length && predicate(stream.charAt(j))) j += 1;
-      return makeSuccess(j, stream.substring(i, j));
+      return ParseUtil.makeSuccess(j, stream.substring(i, j));
     };
   }
 
@@ -417,7 +398,7 @@ class Parser {
       var result = parser.apply(stream, i);
       if (!result.status) return cast(result);
       var nextParseObject = fun(result.value);
-      return mergeReplies(nextParseObject.apply(stream, result.index), result);
+      return ParseUtil.mergeReplies(nextParseObject.apply(stream, result.index), result);
     };
   }
 
@@ -448,7 +429,7 @@ class Parser {
     return function(stream : String, i : Int = 0) : ParseResult<B> {
       var result = parser.apply(stream, i);
       if (!result.status) return cast(result);
-      return mergeReplies(makeSuccess(result.index, fun(result.value)), result);
+      return ParseUtil.mergeReplies(ParseUtil.makeSuccess(result.index, fun(result.value)), result);
     };
   }
 
@@ -481,13 +462,13 @@ class Parser {
       var result = null;
 
       while (true) {
-        result = mergeReplies(parser.apply(stream, i), result);
+        result = ParseUtil.mergeReplies(parser.apply(stream, i), result);
 
         if (result.status) {
           i = result.index;
           accum.push(result.value);
         } else {
-          return mergeReplies(makeSuccess(i, accum), result);
+          return ParseUtil.mergeReplies(ParseUtil.makeSuccess(i, accum), result);
         }
       }
     };
@@ -496,7 +477,7 @@ class Parser {
   /**
     Expects `ParseObject` one or more times, and yields an array of the results.
   **/
-  inline public static function many1<A>(parser: ParseObject<A>) : ParseObject<Array<A>> {
+  public static inline function many1<A>(parser: ParseObject<A>) : ParseObject<Array<A>> {
     return parser.atLeast(1);
   }
 
@@ -515,7 +496,7 @@ class Parser {
 
       for (times in 0...min) {
         result = parser.apply(stream, i);
-        prevParseResult = mergeReplies(result, prevParseResult);
+        prevParseResult = ParseUtil.mergeReplies(result, prevParseResult);
         if (result.status) {
           i = result.index;
           accum.push(result.value);
@@ -524,21 +505,21 @@ class Parser {
 
       for (times in 0...max) {
         result = parser.apply(stream, i);
-        prevParseResult = mergeReplies(result, prevParseResult);
+        prevParseResult = ParseUtil.mergeReplies(result, prevParseResult);
         if (result.status) {
           i = result.index;
           accum.push(result.value);
         } else break;
       }
 
-      return mergeReplies(makeSuccess(i, accum), prevParseResult);
+      return ParseUtil.mergeReplies(ParseUtil.makeSuccess(i, accum), prevParseResult);
     };
   }
 
   /**
     Expects `ParseObject` at most `n` times. Yields an array of the results.
   **/
-  inline public static function atMost<A>(parser: ParseObject<A>, n : Int) : ParseObject<Array<A>> {
+  public static inline function atMost<A>(parser: ParseObject<A>, n : Int) : ParseObject<Array<A>> {
     return parser.times(0, n);
   }
 
@@ -549,15 +530,6 @@ class Parser {
     return [parser.times(n), parser.many()].seq().map(function(results) {
       return results[0].concat(results[1]);
     });
-  }
-
-  /**
-    Yields current position in stream
-  **/
-  public static function index() : ParseObject<Int> {
-    return function(stream : String, i : Int = 0) : ParseResult<Int> {
-      return makeSuccess(i, i);
-    };
   }
 
   /**
@@ -574,99 +546,32 @@ class Parser {
   }
 
   /**
-    Obtain a human-readable error `String`.
-  **/
-  public static function formatError<T>(result : ParseResult<T>, stream : String) : String {
-    var sexpected = result.expected.length == 1
-      ? result.expected[0]
-      : 'one of ' + result.expected.join(', ');
+    Accepts a function that returns a `ParseObject`, which is evaluated the first
+    time the parser is used. This is useful for referencing parsers that haven't
+    yet been defined, and for implementing recursive parsers.
 
-    var indexOffset = result.furthest;
-    var lines = stream.substring(0, indexOffset).split("\n");
-    var lineWeAreUpTo = lines.length;
-    var columnWeAreUpTo = lines[lines.length - 1].length + 1;
-
-    var got = '';
-
-    if (indexOffset == stream.length) {
-      got = ', got the end of the stream';
-    } else {
-      var prefix = (indexOffset > 0 ? "'..." : "'");
-      var suffix = (stream.length - indexOffset > 12 ? "...'" : "'");
-
-      got = ' at line ' + lineWeAreUpTo + ' column ' + columnWeAreUpTo
-        +  ', got ' + prefix + stream.substring(indexOffset, indexOffset + 12) + suffix;
-    }
-
-    return 'expected ' + sexpected + got;
-  }
-
-  /**
-    Create successfull `ParseResult` with specified `index` and `value`.
-  **/
-  inline private static function makeSuccess<A>(index : Int, value : A) : ParseResult<A> {
-    return {
-      status: true,
-      index: index,
-      value: value,
-      furthest: -1,
-      expected: []
-    };
-  }
-
-  /**
-    Create failed `ParseResult` with specified `index` and `expected` input.
-  **/
-  inline private static function makeFailure<A>(index : Int, expected : String) : ParseResult<A> {
-    return {
-      status: false,
-      index: -1,
-      value: null,
-      furthest: index,
-      expected: [expected]
-    };
-  }
-
-  /**
-    Merge `result` and `last` into single `ParseResult`.
-  **/
-  private static function mergeReplies<A, B>(result : ParseResult<A>, ?last : ParseResult<B>) : ParseResult<A> {
-    if (last == null) return result;
-    if (result.furthest > last.furthest) return result;
-
-    var expected = (result.furthest == last.furthest)
-      ? unsafeUnion(result.expected, last.expected)
-      : last.expected;
-
-    return {
-      status: result.status,
-      index: result.index,
-      value: result.value,
-      furthest: last.furthest,
-      expected: expected
-    }
-  }
-
-  /**
-    Create unsafe union from two string arrays `xs` and `ys`.
-  **/
-  private static function unsafeUnion(xs : Array<String>, ys : Array<String>) : Array<String> {
-    if (xs.length == 0) {
-      return ys;
-    } else if (ys.length == 0) {
-      return xs;
-    }
-
-    var result = xs.concat(ys);
-
-    result.sort(function(a, b):Int {
-        a = a.toLowerCase();
-        b = b.toLowerCase();
-        if (a < b) return -1;
-        if (a > b) return 1;
-        return 0;
+    ```haxe
+    static var Value = Parser.lazy(function() {
+      return Parser.alt([
+        Parser.string('x'),
+        Parser.string('(')
+          .then(Value)
+          .skip(Parser.string(')'))
+      ]);
     });
 
-    return result;
+    // ...
+    Value.apply('X');     // => {status: true, value: 'X'}
+    Value.apply('(X)');   // => {status: true, value: 'X'}
+    Value.apply('((X))'); // => {status: true, value: 'X'}
+    ```
+  **/
+  public static function lazy<A>(fun : Void -> ParseObject<A>) : ParseObject<A> {
+    var parser : ParseObject<A> = null;
+
+    return parser = function(stream : String, i : Int = 0) : ParseResult<A> {
+      return (parser.apply = fun().apply)(stream, i);
+    };
   }
+
 }
