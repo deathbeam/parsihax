@@ -4,6 +4,7 @@
 parsihax.ParseFunction
 parsihax.ParseObject
 parsihax.ParseResult
+parsihax.ParseUtil
 parsihax.Parser
 -xml bin/parsihax.xml
 --next
