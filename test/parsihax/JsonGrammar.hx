@@ -83,7 +83,7 @@ class JsonGrammar {
 
   static var numberLiteral =
     token(~/-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/.regexp())
-    .map(function(result) return JsonNumber(Std.parseInt(result)))
+    .map(function(result) return JsonNumber(Std.parseFloat(result)))
     .as('number');
 
   // Array parsing is just ignoring brackets and commas and parsing as many nested
