@@ -2,4 +2,4 @@
 /.vscode/
 /bin/
 /dump/
-.zip
+*.zip
