@@ -3,4 +3,5 @@
 -lib monax
 -lib buddy
 -main parsihax.Test
--x test/parsihax/Test
+-neko test/parsihax/Test.n
+-cmd neko test/parsihax/Test.n

@@ -9,7 +9,7 @@ enum JsonExpression {
   JsonNull;
   JsonTrue;
   JsonFalse;
-  JsonNumber(v : Int);
+  JsonNumber(v : Float);
   JsonString(v : String);
   JsonPair(k : JsonExpression, v : JsonExpression);
   JsonArray(v : Array<JsonExpression>);
@@ -18,7 +18,7 @@ enum JsonExpression {
 
 class JsonGrammar {
   // This is the main entry point of the parser: a full Json document.
-  static var json = function() {
+  static var json = (function() {
     return whitespace.then([
       object,
       array,
@@ -28,7 +28,7 @@ class JsonGrammar {
       trueLiteral,
       falseLiteral
     ].alt());
-  }.lazy();
+  }).lazy();
 
   // Use the Json standard's definition of whitespace rather than Parsihax's.
   static var whitespace = ~/\s*/m.regexp();

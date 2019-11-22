@@ -115,7 +115,7 @@ class Parser {
     in case of matching single character.
   **/
   public static function char(character : String) : ParseObject<String> {
-    return function(ch) { return character == ch; }.test().as("'"+character+"'");
+    return (function(ch) { return character == ch; }).test().as("'"+character+"'");
   }
 
   /**
@@ -123,7 +123,7 @@ class Parser {
     yields that character.
   **/
   public static function oneOf(string : String) : ParseObject<String> {
-    return function(ch) { return string.indexOf(ch) >= 0; }.test();
+    return (function(ch) { return string.indexOf(ch) >= 0; }).test();
   }
 
   /**
@@ -131,7 +131,7 @@ class Parser {
     and yields that character.
   **/
   public static function noneOf(string : String) : ParseObject<String> {
-    return function(ch) { return string.indexOf(ch) < 0; }.test();
+    return (function(ch) { return string.indexOf(ch) < 0; }).test();
   }
 
   /**
