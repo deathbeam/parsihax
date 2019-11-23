@@ -80,7 +80,7 @@ really usefull in recursive parsers.
 [travis]: https://travis-ci.org/deathbeam/parsihax
 [travis-img]: https://api.travis-ci.org/deathbeam/parsihax.svg?branch=master
 [haxelib]: http://lib.haxe.org/p/parsihax
-[docs]: https://nondev.io/parsihax/parsihax/Parser.html
+[docs]: https://deathbeam.github.io/parsihax/parsihax/Parser.html
 [parsihax]: https://github.com/deathbeam/parsihax/blob/master/src/parsihax/Parser.hx
 [test]: https://github.com/deathbeam/parsihax/tree/master/test/parsihax
 [parsec]: https://hackage.haskell.org/package/parsec
