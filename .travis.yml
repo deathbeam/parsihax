@@ -20,7 +20,7 @@ script:
   - haxelib git dox https://github.com/HaxeFoundation/dox
   - rm -rf bin
   - mkdir bin
-  - haxe dox.hxml
+  - haxe doc.hxml
 
 deploy:
   provider: pages
